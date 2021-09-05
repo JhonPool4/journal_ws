@@ -133,9 +133,9 @@ Visualization Manager:
     - Alpha: 1
       Class: rviz/Axes
       Enabled: true
-      Length: 0.25
+      Length: 0.15000000596046448
       Name: Axes
-      Radius: 0.02500000037252903
+      Radius: 0.014999999664723873
       Reference Frame: base
       Value: true
   Enabled: true
@@ -182,9 +182,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: -1.5697963237762451
+      Pitch: -1.4997963905334473
       Target Frame: <Fixed Frame>
-      Yaw: 3.141573429107666
+      Yaw: 3.141578197479248
     Saved: ~
 Window Geometry:
   Displays:
