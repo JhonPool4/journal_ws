@@ -1,0 +1,19 @@
+
+# find EIGEN3
+FIND_PATH(EIGEN3_INCLUDE_DIR Eigen/Dense 
+    HINTS
+    /usr/include/eigen3
+    /usr/include/eigen3/Eigen
+    )
+
+# error message EIGEN3
+IF( NOT EIGEN3_INCLUDE_DIR )
+    MESSAGE( FATAL_ERROR "EIGEN3 NOT FOUND")
+ENDIF()
+
+# found message EIGEN3
+IF (EIGEN3_INCLUDE_DIR)
+    MESSAGE( STATUS "EIGEN3 FOUND: ${EIGEN3_INCLUDE_DIR}")
+
+# include EIGEN3
+INCLUDE_DIRECTORIES ( "${EIGEN3_INCLUDE_DIR}" )
