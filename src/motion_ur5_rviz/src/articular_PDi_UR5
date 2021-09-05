@@ -54,7 +54,7 @@ pub = rospy.Publisher('joint_states', JointState, queue_size=1000)
 # 		Line and Ball Marker
 # ===============================
 # Show a ball marker for current and desired position of robot' end-effector
-bmarker_des 	= BallMarker(color['RED'])
+bmarker_des 	= BallMarker(color['GREEN'])
 bmarker_act  	= BallMarker(color['YELLOW'])
 
 # =============================================================
