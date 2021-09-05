@@ -1,6 +1,20 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(my_control_gazebo)
 
+# To know the project directory
+message("PROJECT_SOURCE_DIR: ${PROJECT_SOURCE_DIR}")
+
+# We need to add the project source path to the CMake module path so that
+# the FindRBDL.cmake script can be found.
+LIST( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR} )
+
+# Search for the RBDL include directory and library
+FIND_PACKAGE (RBDL REQUIRED)
+FIND_PACKAGE (Eigen3 REQUIRED)
+
+# Add the include directory to the include paths
+INCLUDE_DIRECTORIES ( ${RBDL_INCLUDE_DIR} ${EIGEN3_INCLUDE_DIR})
+
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
 
@@ -13,6 +27,7 @@ find_package(catkin REQUIRED COMPONENTS
   pluginlib
   roscpp
   std_msgs
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -49,11 +64,11 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  Jacobian.msg
+  Pose.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -70,10 +85,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -107,6 +122,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES my_control_gazebo
+  CATKIN_DEPENDS message_runtime
 #  CATKIN_DEPENDS controller_interface hardware_interface pluginlib roscpp std_msgs
 #  DEPENDS system_lib
 )
@@ -117,15 +133,10 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(
-# include
-  ${catkin_INCLUDE_DIRS}
-)
+include_directories(include ${catkin_INCLUDE_DIRS} )
 
 ## Declare a C++ library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/my_control_gazebo.cpp
-# )
+add_library(my_controllers_gazebo_lib src/my_impedance_controller.cpp src/my_adaptive_controller.cpp)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -148,9 +159,7 @@ include_directories(
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(${PROJECT_NAME}_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(my_controllers_gazebo_lib ${catkin_LIBRARIES} ${RBDL_LIBRARY} ${RBDL_URDFReader_LIBRARY})
 
 #############
 ## Install ##
