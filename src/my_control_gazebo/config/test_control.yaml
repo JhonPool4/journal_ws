@@ -1,0 +1,61 @@
+joint_state_controller:
+    type: joint_state_controller/JointStateController
+    publish_rate: 125
+
+
+# Trajectory controller
+arm_controller:
+  type: effort_controllers/JointTrajectoryController
+  joints:
+    - shoulder_pan_joint
+    - shoulder_lift_joint
+    - elbow_joint
+    - wrist_1_joint
+    - wrist_2_joint
+    - wrist_3_joint
+  gains: # Required because we're controlling an effort interface
+    shoulder_pan_joint:   {p: 2500,   d: 100,   i: 0.0,   i_clamp: 0}
+    shoulder_lift_joint:  {p: 2500,   d: 100,   i: 0.0,   i_clamp: 0}
+    elbow_joint:          {p: 2500,   d: 100,   i: 0.0,   i_clamp: 0}
+    wrist_1_joint:        {p: 400,    d: 10,    i: 0.0,   i_clamp: 0}
+    wrist_2_joint:        {p: 350,    d: 0.1,   i: 0.00,  i_clamp: 0}
+    wrist_3_joint:        {p: 150,    d: 0.1,   i: 0.00,  i_clamp: 0}
+
+  constraints:
+    goal_time: 0.6
+    stopped_velocity_tolerance: 0.05
+    shoulder_pan_joint: {trajectory: 0.1, goal: 0.1}
+    shoulder_lift_joint: {trajectory: 0.1, goal: 0.1}
+    elbow_joint: {trajectory: 0.1, goal: 0.1}
+    wrist_1_joint: {trajectory: 0.1, goal: 0.1}
+    wrist_2_joint: {trajectory: 0.1, goal: 0.1}
+    wrist_3_joint: {trajectory: 0.1, goal: 0.1}
+  
+  state_publish_rate:  125            # Override default
+  action_monitor_rate: 20            # Override default
+  stop_trajectory_duration: 0        # Override default
+
+
+
+
+# My Impendace Controller
+impedance_controller:
+  type: effort_controllers/CartesianImpedanceController
+  joints:
+    - shoulder_pan_joint
+    - shoulder_lift_joint
+    - elbow_joint
+    - wrist_1_joint
+    - wrist_2_joint
+    - wrist_3_joint    
+
+# My Adaptive Controller
+adaptive_controller:
+  type: effort_controllers/CartesianAdaptiveController
+  joints:
+    - shoulder_pan_joint
+    - shoulder_lift_joint
+    - elbow_joint
+    - wrist_1_joint
+    - wrist_2_joint
+    - wrist_3_joint    
