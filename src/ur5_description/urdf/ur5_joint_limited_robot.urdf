@@ -24,6 +24,7 @@
   <!-- In CAD this distance is 0.930, but in the spec it is 0.09465 -->
   <!--property name="wrist_3_length" value="0.0823" /-->
   <!-- manually measured -->
+  <!--mechanical structure of ur5 robot-->
   <link name="base_link">
     <visual>
       <geometry>
@@ -208,7 +209,7 @@
     </collision>
     <inertial>
       <mass value="0.1879"/>
-      <origin rpy="1.5707963267948966 0 0" xyz="0.0 0.06505 0.0"/>
+      <origin rpy="0 0 0" xyz="0.0 0.06505 0.0"/>
       <inertia ixx="8.469589112163e-05" ixy="0.0" ixz="0.0" iyy="8.469589112163e-05" iyz="0.0" izz="0.0001321171875"/>
     </inertial>
   </link>
@@ -217,6 +218,7 @@
     <child link="ee_link"/>
     <origin rpy="0.0 0.0 1.5707963267948966" xyz="0.0 0.0823 0.0"/>
   </joint>
+  <!--end effector (link)-->
   <link name="ee_link">
     <collision>
       <geometry>
@@ -311,13 +313,13 @@
     <parent link="base_link"/>
     <child link="base"/>
   </joint>
-  <!-- Frame coincident with all-zeros TCP on UR controller -->
-  <link name="tool0"/>
-  <joint name="wrist_3_link-tool0_fixed_joint" type="fixed">
-    <origin rpy="-1.5707963267948966 0 0" xyz="0 0.0823 0"/>
-    <parent link="wrist_3_link"/>
-    <child link="tool0"/>
-  </joint>
+  <!-- Frame coincident with all-zeros TCP on UR controller
+    <link name="${prefix}tool0"/>
+    <joint name="${prefix}wrist_3_link-tool0_fixed_joint" type="fixed">
+      <origin xyz="0 ${wrist_3_length} 0" rpy="${pi/-2.0} 0 0"/>
+      <parent link="${prefix}wrist_3_link"/>
+      <child link="${prefix}tool0"/>
+    </joint> -->
   <link name="world"/>
   <joint name="world_joint" type="fixed">
     <parent link="world"/>
