@@ -4,9 +4,6 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /Global Options1
-        - /Status1
-        - /Grid1
         - /RobotModel1
         - /RobotModel1/Links1/ee_link1
         - /RobotModel1/Links1/wrist_3_link1
@@ -58,7 +55,7 @@ Visualization Manager:
       Plane Cell Count: 10
       Reference Frame: base_link
       Value: true
-    - Alpha: 0.699999988079071
+    - Alpha: 0.8500000238418579
       Class: rviz/RobotModel
       Collision Enabled: false
       Enabled: true
@@ -182,7 +179,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: -1.4997963905334473
+      Pitch: -1.5697963237762451
       Target Frame: <Fixed Frame>
       Yaw: 3.141578197479248
     Saved: ~
