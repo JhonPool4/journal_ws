@@ -1,0 +1,31 @@
+
+<!--
+<library path="lib/libimpedance_controller_lib">
+
+	<class 	name="effort_controllers/CartesianImpedanceController" 
+		type="effort_controllers_ns::CartesianImpedanceController" 
+		base_class_type="controller_interface::ControllerBase">
+	</class>
+
+</library>
+
+<library path="lib/libadaptive_controller_lib">
+
+	<class 	name="effort_controllers/CartesianAdaptiveController" 
+		type="effort_controllers_ns::CartesianAdaptiveController" 
+		base_class_type="controller_interface::ControllerBase">
+	</class>
+
+</library>
+-->
+
+<library path="lib/libmy_controllers_gazebo_lib">
+	<class 	name="effort_controllers/CartesianImpedanceController" 
+		type="effort_controllers_ns::CartesianImpedanceController" 
+		base_class_type="controller_interface::ControllerBase">
+	</class>
+	<class 	name="effort_controllers/CartesianAdaptiveController" 
+		type="effort_controllers_ns::CartesianAdaptiveController" 
+		base_class_type="controller_interface::ControllerBase">
+	</class>
+</library>
