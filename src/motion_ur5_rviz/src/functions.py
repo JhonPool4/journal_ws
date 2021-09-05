@@ -1,7 +1,7 @@
-# ============================================================
+# ===============================
 #   Author  :   Jhon Charaja
 #   Info    :   Basic functions
-# ============================================================
+# ===============================
 
 import numpy as np
 import math
@@ -115,7 +115,7 @@ def jacobian_pose_ur5(q, delta=0.001):
     T = fkine_ur5(q)
     Q = rot2quat(T[0:3,0:3])
 
-    for i in xrange(6):
+    for i in range(6):
         dq      = copy(q)
         dq[i]   = dq[i] + delta
         dT      = fkine_ur5(dq)

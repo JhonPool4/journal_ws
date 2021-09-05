@@ -1,9 +1,8 @@
-"""
-Fundamentos de Robotica 2019-1 - UTEC
-Prof. Oscar E. Ramos
-File: markers.py
+# ===============================
+#   Author  :   Jhon Charaja
+#   Info    :   Basic functions
+# ===============================
 
-"""
 
 from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Point
@@ -25,7 +24,7 @@ class BallMarker(object):
         scales the size of the ball
 
         """
-        reference_frame = rospy.get_param('reference_frame','/base')
+        reference_frame = rospy.get_param('reference_frame','base')
         self.marker_pub = rospy.Publisher("visualization_marker", Marker,
                                           queue_size=10)
         self.marker = Marker()
@@ -96,7 +95,7 @@ class LineMarker(object):
         scales the size of the Line
 
         """
-        reference_frame = rospy.get_param('reference_frame','/base')
+        reference_frame = rospy.get_param('reference_frame','base')
         self.marker_pub = rospy.Publisher("visualization_marker", Marker,
                                           queue_size=10)
         self.marker = Marker()
@@ -104,7 +103,7 @@ class LineMarker(object):
         self.marker.ns = "line_markers"
         self.marker.id = LineMarker.id
         LineMarker.id += 1
-        self.marker.type = self.marker.LINE_STRIP#self.marker.SPHERE
+        self.marker.type = self.marker.LINE_STRIP #self.marker.SPHERE
         self.marker.action = self.marker.ADD
         self.marker.pose.position.x = 0.0
         self.marker.pose.position.y = 0.0
