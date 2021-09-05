@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # ============================================================
 #	Curso   :   Concytec - UTEC
@@ -41,10 +41,6 @@ from markers import *					# To show a market ball
 from functions import *					# Forward Kinematics, Inverse Kinematics and Forward Dynamic
 from roslib import packages				# Library with ROS packages
 import rbdl								# Library to compute dynamic matrix H and B of robot
-pi = np.pi 								# Define "pi"
-from datetime import datetime
-
-
 
 # ===============================
 # 		Configuration of node
@@ -60,7 +56,7 @@ pub = rospy.Publisher('joint_states', JointState, queue_size=1000)
 # 		Line and Ball Marker
 # ===============================
 # Show a ball marker for current and desired position of robot' end-effector
-bmarker_des 	= BallMarker(color['RED'])
+bmarker_des 	= BallMarker(color['GREEN'])
 bmarker_act  	= BallMarker(color['YELLOW'])
 
 # =============================================================
@@ -156,7 +152,7 @@ u  = np.zeros(6)
 # 		Dynamic simulation
 # ================================
 t = 0.0
-t_reach = 10 # 1 min
+t_reach = 20 # 1 min
 
 
 origin 	= './Data/SMCi'
@@ -309,12 +305,13 @@ while not rospy.is_shutdown():
 	# New value of Lambda
 	crit_p = (1000)*np.sqrt(np.sum(np.power(x_e[0:3],2))) 	# [mm]
 	crit_a = (180/pi)*np.sqrt(np.sum(np.power(e[0:6],2))) 	# [degrees]
-	#if crit_p > np.sqrt(6):
+	
+	# Upgrade of control gains
 	Lambda[0:6] = Lambda[0:6] - alpha[0]*dJ_Lambda[0:6] 	# [6x1]
 	K[0:6]  	= K[0:6] - alpha[1]*dJ_K[0:6] 				# [6x1]
 
 	# Ball marker
-	bmarker_des.xyz(x_ref[0:3])	# Red
+	bmarker_des.xyz(x_ref[0:3])	# Green
 	bmarker_act.xyz(x_act[0:3])	# Yellow
 	
 	# Print

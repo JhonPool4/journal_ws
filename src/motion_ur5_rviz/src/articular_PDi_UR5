@@ -37,8 +37,6 @@ import rbdl								# Library to compute dynamic matrix H and B of robot
 pi = np.pi 								# Define "pi"
 from datetime import datetime
 
-
-
 # ===============================
 # 		Configuration of node
 # ===============================
