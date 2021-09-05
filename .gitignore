@@ -2,3 +2,5 @@ build/
 devel/
 src/CMakeLists.txt
 src/readme.md
+src/motion_ur5_rviz/src/Data/
+src/motion_ur5_rviz/src/__pycache__/
