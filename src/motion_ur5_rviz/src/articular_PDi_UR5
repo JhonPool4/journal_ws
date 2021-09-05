@@ -145,7 +145,7 @@ u  = np.zeros(6)
 # 		Dynamic simulation
 # ================================
 t = 0.0
-t_reach = 10 # secs
+t_reach = 20 # secs
 
 origin 	= './Data/PDi'
 suffix 	= 'circular_traj'
@@ -291,12 +291,13 @@ while not rospy.is_shutdown():
 	# New value of KP and KD
 	crit_p = (1000)*np.sqrt(np.sum(np.power(x_e[0:3],2))) 	 # [mm]
 	crit_a = (180/np.pi)*np.sqrt(np.sum(np.power(e[0:6],2))) # [°]
-	#if crit_p > np.sqrt(6):
+	
+	# Upgrade control gains
 	KP[0:6] = KP[0:6] - alpha*dJ_KP[0:6] 	#[6x1]  
 	KD[0:6] = KD[0:6] - alpha*dJ_KD[0:6] 	#[6x1]	
 
 	# Ball marker
-	bmarker_des.xyz(x_ref[0:3])	# Red
+	bmarker_des.xyz(x_ref[0:3])	# Green
 	bmarker_act.xyz(x_act[0:3])	# Yellow
 	
 	# Print
@@ -305,6 +306,7 @@ while not rospy.is_shutdown():
 	print("KD: ", KD) 
 	print("c:  ", c)
 	print("crit_p: ", crit_p)
+	print("crit_a: ", crit_a)
 	#print("e   (mm): ", np.round(1000*x_e[0:3], 1))
 	#print("de  (mm): ", np.round(1000*dx_e[0:3],1))
 	#print("dde (mm): ", np.round(1000*ddx_e[0:3],1))
