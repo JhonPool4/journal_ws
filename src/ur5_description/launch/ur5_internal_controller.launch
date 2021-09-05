@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!-- TESIS JHON: Mostrar UR5 en el simulador dinámico Gazebo -->
+
+  <!-- joint_state_controller -->
+    <!-- joint_state_controller -->
+    <rosparam file="$(find ur5_description)/control/ur5_controller.yaml" command="load"/>
+    <node name="joint_state_controller_spawner" pkg="controller_manager" type="controller_manager" args="spawn joint_state_controller" respawn="false" output="screen"/> 
+
+    <!-- start this controller -->
+    <rosparam file="$(find ur5_description)/control/ur5_controller.yaml" command="load"/>
+    <node name="arm_controller_spawner" pkg="controller_manager" type="controller_manager" args="spawn arm_controller" respawn="false" output="screen"/>
+
+</launch>
+

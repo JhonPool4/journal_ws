@@ -1,0 +1,4 @@
+build/
+devel/
+src/CMakeLists.txt
+src/readme.md

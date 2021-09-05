@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<!-- INFO: Show UR5 robot on Gazebo simulator -->
+
+
+<launch>
+  <!-- Simulation configuration -->
+  <arg name="limited" default="true" doc="If true, limits joint range [-PI, PI] on all joints." />
+  <arg name="transmission_hw_interface" default="hardware_interface/EffortJointInterface" doc="Simulation Gazebo" />
+  <arg name="paused" default="true" doc="Starts gazebo in paused mode" />
+  <arg name="gui" default="true" doc="Starts gazebo gui" />
+  
+
+  <!-- startup simulated world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find ur5_description)/worlds/empty_world.world"/>
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="gui" value="$(arg gui)"/>
+  </include>
+
+  <!-- Robot UR5 -->
+  <!-- send robot urdf to param server -->
+  <include file="$(find ur5_description)/launch/ur5_upload.launch">
+    <arg name="limited" value="$(arg limited)"/>
+    <arg name="transmission_hw_interface" value="$(arg transmission_hw_interface)"/>	
+  </include>
+
+  <!-- Robot state publisher --> <!-- Convert joint states to /tf tranforms -->
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+    <param name="publish_frequency" type="double" value="125" />
+    <param name="tf_prefix" type="string" value="" />
+  </node>
+
+  <!-- Controller file -->
+  <!-- Load joint controller configurations from YAML file to parameter server -->
+  <rosparam file="$(find ur5_description)/control/ur5_controller.yaml" command="load"/>
+  
+  <!-- load the controllers  -->
+  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
+  output="screen" args="joint_state_controller  
+                        trajectory_controller"/> 
+
+</launch>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
