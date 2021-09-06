@@ -36,8 +36,8 @@ int main(int argc, char **argv)
 	ros::NodeHandle nh;
 
 	// Publisher
-	ros::Publisher  pub = nh.advertise<my_control_gazebo::Pose>("adaptive_controller/command", 100);
-	ros::Subscriber sub = nh.subscribe("adaptive_controller/f_start", 100, startCallback);
+	ros::Publisher  pub = nh.advertise<my_control_gazebo::Pose>("PD_controller/command", 100);
+	ros::Subscriber sub = nh.subscribe("PD_controller/f_start", 100, startCallback);
 
 	// Rate
 	ros::Rate loop_rate(1000);	 // 1000 Hz
