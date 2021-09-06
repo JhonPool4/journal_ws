@@ -20,7 +20,7 @@ class PublishTrajectory:
 if __name__ == '__main__':
     # Create a nodo: articular_circ_trajectory
     rospy.init_node("articular_circ_trajectory")
-
+    ndof = 6
     #  Home joint configuration of ur5 robot (radians)
     q 		    = np.array([0.22555947, -2.16092376, -2.13975583, -0.41997402,  1.53827725, -1.35006513]) # Center [0.5 +0.0 0.0]
     dq 			= np.zeros(ndof)
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     t = 0
 
     while not rospy.is_shutdown():
-        if (f_start == 1):
+        if (circ_traj.f_start == 1):
             # desired values (cartesian space)
             x_des[0:3], dx_des[0:3], ddx_des[0:3], dddx_des[0:3] = circular_trayectory_generator(t)
             
@@ -88,14 +88,17 @@ if __name__ == '__main__':
             velocity_command.dq6 = dq_des[5]
 
             # Publish position and velocity commands
-            circ_traj.position_command_pub(position_command)
-            circ_traj.velocity_command_pub(velocity_command)
+            circ_traj.position_command_pub.publish(position_command)
+            circ_traj.velocity_command_pub.publish(velocity_command)
 
+            # time
+            t = t + 0.01
             # sleep
             rate.sleep()
+
         
         else:
             # wait
-            print("waiting start signal...")
-            rospy.spin()
+            #print("waiting start signal...")
+            #rospy.spinOnce()
 
