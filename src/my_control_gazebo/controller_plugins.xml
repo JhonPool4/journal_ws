@@ -28,4 +28,8 @@
 		type="effort_controllers_ns::CartesianAdaptiveController" 
 		base_class_type="controller_interface::ControllerBase">
 	</class>
+	<class 	name="effort_controllers/ArticularPDController" 
+		type="effort_controllers_ns::ArticularPDController" 
+		base_class_type="controller_interface::ControllerBase">
+	</class>	
 </library>

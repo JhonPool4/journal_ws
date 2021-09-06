@@ -136,7 +136,10 @@ catkin_package(
 include_directories(include ${catkin_INCLUDE_DIRS} )
 
 ## Declare a C++ library
-add_library(my_controllers_gazebo_lib src/my_impedance_controller.cpp src/my_adaptive_controller.cpp)
+add_library(my_controllers_gazebo_lib 
+            src/my_impedance_controller.cpp 
+            src/my_adaptive_controller.cpp
+            src/my_PD_controller.cpp)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
