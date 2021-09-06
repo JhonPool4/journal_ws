@@ -13,7 +13,7 @@
 
   <!-- startup simulated world -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(find ur5_description)/worlds/empty_world.world"/>
+    <arg name="world_name" value="$(find motion_ur5_gazebo)/worlds/journal_world.world"/>
     <arg name="paused" value="$(arg paused)"/>
     <arg name="gui" value="$(arg gui)"/>
   </include>
@@ -39,8 +39,8 @@
   output="screen" args="joint_state_controller
                         PD_controller"/>
 
-  <!-- Send pose -->
-  <node type="send_circ_traj_gazebo" pkg="motion_ur5_gazebo" name="dummy_send_pose" output="screen"/>                        
+  <!-- Send pose 
+  <node type="send_circ_traj_gazebo" pkg="motion_ur5_gazebo" name="dummy_send_pose" output="screen"/>  -->                      
 </launch>
 
 
