@@ -100,4 +100,9 @@ if __name__ == '__main__':
         else:
             # wait
             print("waiting start signal...")
+<<<<<<< HEAD
             #rospy.spinOnce()
+=======
+            #rospy.spinOnce()
+
+>>>>>>> dev
