@@ -99,6 +99,6 @@ if __name__ == '__main__':
         
         else:
             # wait
-            #print("waiting start signal...")
+            print("waiting start signal...")
             #rospy.spinOnce()
 
