@@ -68,6 +68,8 @@ add_message_files(
   FILES
   Jacobian.msg
   Pose.msg
+  AngularPosition.msg
+  AngularVelocity.msg
 )
 
 ## Generate services in the 'srv' folder
