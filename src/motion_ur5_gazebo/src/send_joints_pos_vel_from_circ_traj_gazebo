@@ -1,3 +1,101 @@
-rostopic pub /PD_controller/position_command my_control_gazebo/AngularPosition "{q1: 0.0, q2: -0.96, q3: 2.1, q4: -2.6, q5: 0, q6: -1.96}"
+#!/usr/bin/env python3
 
-rostopic pub /PD_controller/position_command my_control_gazebo/AngularPosition "{q1: 0, q2: 0, q3: 0, q4: 0, q5: 0, q6: 0}"
+import rospy
+from my_control_gazebo.msg import AngularPosition
+from my_control_gazebo.msg import AngularVelocity
+from std_msgs.msg import Int64
+from functions import *
+
+class PublishTrajectory:   
+  def __init__(self):
+    self.start_command_sub = rospy.Subscriber("PD_controller/f_start",Int64, self.startCB)
+    self.position_command_pub = rospy.Publisher('PD_controller/position_command', AngularPosition, queue_size=100)
+    self.velocity_command_pub = rospy.Publisher('PD_controller/velocity_command', AngularVelocity, queue_size=100)
+    self.f_start = 0
+
+  def startCB(self, msg):
+    self.f_start = msg.data
+
+
+if __name__ == '__main__':
+    # Create a nodo: articular_circ_trajectory
+    rospy.init_node("articular_circ_trajectory")
+
+    #  Home joint configuration of ur5 robot (radians)
+    q 		    = np.array([0.22555947, -2.16092376, -2.13975583, -0.41997402,  1.53827725, -1.35006513]) # Center [0.5 +0.0 0.0]
+    dq 			= np.zeros(ndof)
+    ddq 		= np.zeros(ndof)
+
+    # Reference angular position, velocity and acceleration
+    x_ref   = np.zeros(7)
+    dx_ref  = np.zeros(7)
+    ddx_ref = np.zeros(7)
+    # First reference cartesian point
+    x_ref   = get_current_pose(q)
+
+    # Desired angular position, velocity and acceleration
+    q_des 	 = np.zeros(6)  
+    dq_des   = np.zeros(6)
+    ddq_des  = np.zeros(6)
+    dddq_des = np.zeros(6)
+    # First desired joint configuration
+    q_des, dq_des, ddq_des, dddq_des = ikine_pose_ur5_configuration(x_ref, dx_ref, q, dq, ddq)
+
+    # Desired cartesian position, velocity, acceleration and jerk
+    x_des    = np.zeros(7)
+    x_des[3:7] = np.array([0.01676998,  0.99985616,  0.00251062,  0.00]) # fixed orientation
+    dx_des 	 = np.zeros(7)
+    ddx_des  = np.zeros(7)
+    dddx_des = np.zeros(7)
+
+    # Loop rate (in Hz)
+    rate 	= rospy.Rate(100)		# 100 [Hz]
+    dt 		= 1e-2					# 10  [ms]
+
+    # Classes
+    circ_traj = PublishTrajectory()
+    position_command = AngularPosition()
+    velocity_command = AngularVelocity()
+
+    # simulation time
+    t = 0
+
+    while not rospy.is_shutdown():
+        if (f_start == 1):
+            # desired values (cartesian space)
+            x_des[0:3], dx_des[0:3], ddx_des[0:3], dddx_des[0:3] = circular_trayectory_generator(t)
+            
+            # reference values (cartesian space)
+            x_ref[0:3], dx_ref[0:3], ddx_ref[0:3] = reference_trajectory(x_des[0:3], x_ref[0:3], dx_ref[0:3], dt)
+
+            # Inverse kinematics
+            q_des, dq_des, ddq_des, dddq_des = ikine_pose_ur5(x_ref, dx_ref, q_des, dq_des, ddq_des)	# It starts with q_des=copy(q0)
+
+            # Set message: Position
+            position_command.q1 = q_des[0]
+            position_command.q2 = q_des[1]
+            position_command.q3 = q_des[2]
+            position_command.q4 = q_des[3]
+            position_command.q5 = q_des[4]
+            position_command.q6 = q_des[5]
+
+            # Set message: Velocity
+            velocity_command.dq1 = dq_des[0]
+            velocity_command.dq2 = dq_des[1]
+            velocity_command.dq3 = dq_des[2]
+            velocity_command.dq4 = dq_des[3]
+            velocity_command.dq5 = dq_des[4]
+            velocity_command.dq6 = dq_des[5]
+
+            # Publish position and velocity commands
+            circ_traj.position_command_pub(position_command)
+            circ_traj.velocity_command_pub(velocity_command)
+
+            # sleep
+            rate.sleep()
+        
+        else:
+            # wait
+            print("waiting start signal...")
+            rospy.spin()
+
