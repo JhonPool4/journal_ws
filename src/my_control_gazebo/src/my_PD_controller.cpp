@@ -1,3 +1,7 @@
+/*
+	Control library: articular PD controller
+*/
+
 // Control
 #include <controller_interface/controller.h>
 #include <hardware_interface/joint_command_interface.h>
@@ -5,7 +9,8 @@
 #include <trajectory_msgs/JointTrajectory.h>
 
 // Ros msg
-#include <my_control_gazebo/Pose.h>
+#include <my_control_gazebo/AngularPosition.h>
+#include <my_control_gazebo/AngularVelocity.h>
 #include <std_msgs/Int64.h>
 
 // Console
@@ -22,16 +27,12 @@
 
 // RBDL 
 #include <rbdl/rbdl.h>
-#ifndef RBDL_BUILD_ADDON_URDFREADER
-	#error "Error: RBDL addon URDFReader not enabled."
-#endif
-
 #include <rbdl/addons/urdfreader/urdfreader.h>
 using namespace RigidBodyDynamics;
 using namespace RigidBodyDynamics::Math;
 using namespace Eigen;
 
-// vector of fixed size
+// Vector of fixed size
 typedef Matrix<double, 6, 1> Vector_d_6x1;
 typedef Matrix<double, 7, 1> Vector_d_7x1;
 typedef Matrix<double, 4, 1> Vector_d_4x1;
@@ -40,7 +41,7 @@ typedef Matrix<double, 7, 7> Matrix_d_7x7;
 typedef Matrix<double, 7, 6> Matrix_d_7x6;
 typedef Matrix<double, 6, 6> Matrix_d_6x6;
 
-// effort control class: Impendance control method 
+// Effort control class: PD control method 
 namespace effort_controllers_ns{
 
 	class ArticularPDController : 	public controller_interface::Controller<hardware_interface::EffortJointInterface>
@@ -52,12 +53,18 @@ namespace effort_controllers_ns{
 			std::vector< hardware_interface::JointHandle > joints_;
 			// Number of joints
 			unsigned int n_joints_;
-			// Real time buffer: end-effector pose
-			realtime_tools::RealtimeBuffer<std::vector<double> > ee_pose_command_;
+			// Real time buffer: angular position 
+			realtime_tools::RealtimeBuffer<std::vector<double> > position_command_;
+			// Real time buffer: angular velocity
+			realtime_tools::RealtimeBuffer<std::vector<double> > velocity_command_;
 			// Subscriber
-			ros::Subscriber sub_command_;
+			ros::Subscriber sub_position_command_;
+			ros::Subscriber sub_velocity_command_;
 			// Publisher
 			ros::Publisher pub_commad_;
+			// Control gains
+			Vector_d_6x1 kp_;
+			Vector_d_6x1 kd_;
 			// RBDL
 			Model* model_ = new Model();
 			// Just to print
@@ -94,7 +101,8 @@ namespace effort_controllers_ns{
 					}
 				}
 				// resize command buffer with non real time communication
-				ee_pose_command_.writeFromNonRT(std::vector<double>(7, 0.0));
+				position_command_.writeFromNonRT(std::vector<double>(6, 0.0));
+				velocity_command_.writeFromNonRT(std::vector<double>(6, 0.0));
 
 				// Load urdf model
 				if (!Addons::URDFReadFromFile ("/home/jhon/catkin_ws/journal_ws/src/ur5_description/urdf/ur5_joint_limited_robot.urdf", model_, false))
@@ -103,7 +111,8 @@ namespace effort_controllers_ns{
 				}
 
 				// Subscriber
-				sub_command_ = n.subscribe<my_control_gazebo::Pose>("command", 1, &ArticularPDController::commandCB, this);
+				sub_position_command_ = n.subscribe<my_control_gazebo::AngularPosition>("position_command", 1, &ArticularPDController::positionCommandCB, this);
+				sub_velocity_command_ = n.subscribe<my_control_gazebo::AngularVelocity>("velocity_command", 1, &ArticularPDController::velocityCommandCB, this);
 
 				// Publisher
 				pub_commad_ = n.advertise<std_msgs::Int64>("f_start", 1);
@@ -111,206 +120,175 @@ namespace effort_controllers_ns{
 				return true;					
 			}
 
-			void commandCB(const my_control_gazebo::Pose::ConstPtr& msg){
+			void positionCommandCB(const my_control_gazebo::AngularPosition::ConstPtr& msg_p){
 				
-				// To recieve end-effector pose
-				std::vector<double> ee_pose(7,0.0);
+				// To recieve angular position message
+				std::vector<double> desired_position(6,0.0);
+				// Reciving desired position message
+				desired_position[0] = msg_p->q1;
+				desired_position[1] = msg_p->q2;
+				desired_position[2] = msg_p->q3;
+				desired_position[3] = msg_p->q4;
+				desired_position[4] = msg_p->q5;
+				desired_position[5] = msg_p->q6;
 
-				ee_pose[0] = msg->x;
-				ee_pose[1] = msg->y;
-				ee_pose[2] = msg->z;
-				ee_pose[3] = msg->w;
-				ee_pose[4] = msg->ex;
-				ee_pose[5] = msg->ey;
-				ee_pose[6] = msg->ez;
-
-				ee_pose_command_.initRT(ee_pose); // ee_pose_command_ require std::vector<double>						
-
+				// Send desired angular position
+				position_command_.initRT(desired_position); // ee_pose_command_ require std::vector<double>	
 			}
+
+			void velocityCommandCB(const my_control_gazebo::AngularVelocity::ConstPtr& msg_v){
+				
+				// To recieve angular velocity message
+				std::vector<double> desired_velocity(6,0.0);
+				// Reciving desired velocity message
+				desired_velocity[0] = msg_v->dq1;
+				desired_velocity[1] = msg_v->dq2;
+				desired_velocity[2] = msg_v->dq3;
+				desired_velocity[3] = msg_v->dq4;
+				desired_velocity[4] = msg_v->dq5;
+				desired_velocity[5] = msg_v->dq6;
+
+				// Send desired angular velocity
+				velocity_command_.initRT(desired_velocity); // ee_pose_command_ require std::vector<double>										
+			}
+
 			void starting(const ros::Time& time)
 			{
-				std::vector<double> ee_pose(7,0.0);
+				// Initial values of control gains
+				for(int i=0; i<6; i++)
+				{
+					kp_[i] = 25;
+					kd_[i] = 10;
+				}
+
+
+				// To recieve angular position and velocity message
+				std::vector<double> desired_position(6,0.0);
+				std::vector<double> desired_velocity(6,0.0);
 				Vector_d_6x1 q;
-				Matrix_d_4x4 T;
-				Vector_d_4x1 Q;
+				Vector_d_6x1 dq;
 
-				// Read current position of the joints
-				/*
-				for (std::size_t i = 0; i < n_joints_; ++i)
-				{	q[i] = joints_[i].getPosition();	}
-				*/
-				// Home position
-				q[0] =  3.14;
-				q[1] = -2.17330664;
-				q[2] = -2.11274865;
-				q[3] = -0.42801517;
-				q[4] =  1.53728324;
-				q[5] = -1.55185632;  				
+				// Home position: Angular Position
+				q[0] = 0.22555947;
+				q[1] = -2.16092376;
+				q[2] = -2.13975583;
+				q[3] = -0.41997402;
+				q[4] =  1.53827725;
+				q[5] = -1.35006513;  
+				// Home position: Angular Velocity
+				dq[0] = 0.0;
+				dq[1] = 0.0;
+				dq[2] = 0.0;
+				dq[3] = 0.0;
+				dq[4] = 0.0;
+				dq[5] = 0.0;				
 
-				// Transform from articular to Cartesian space
-				T = fkine_ur5(q); // forward kinematics
-				Q = rot2quat(T);  // from rotational matrix to quaternions
-				
-				ee_pose[0] = T(0,3);
-				ee_pose[1] = T(1,3);
-				ee_pose[2] = T(2,3);
-				ee_pose[3] = Q[0];
-				ee_pose[4] = Q[1];
-				ee_pose[5] = Q[2];
-				ee_pose[6] = Q[3];	
+				// Reciving desired position message
+				desired_position[0] = q[0];
+				desired_position[1] = q[1];
+				desired_position[2] = q[2];
+				desired_position[3] = q[3];
+				desired_position[4] = q[4];
+				desired_position[5] = q[5];
+				// Reciving desired velocity message
+				desired_velocity[0] = dq[0];
+				desired_velocity[1] = dq[1];
+				desired_velocity[2] = dq[2];
+				desired_velocity[3] = dq[3];
+				desired_velocity[4] = dq[4];
+				desired_velocity[5] = dq[5];	
 
-				ee_pose_command_.initRT(ee_pose); // ee_pose_command_ require std::vector<double>					  						
+				// Send desired angular position
+				position_command_.initRT(desired_position); // ee_pose_command_ require std::vector<double>	
+				// Send desired angular velocity
+				velocity_command_.initRT(desired_velocity); // ee_pose_command_ require std::vector<double>					  						
 			}
 
 			void update(const ros::Time& time, const ros::Duration& period)
 			{
-				// f_start = 1 indicates that control file is ok
+				// f_start = 1 indicates that control file load without problems
+				// Thus, node starts publishing desired trajectory
 				std_msgs::Int64 f_start;
 				f_start.data = 1;
 				pub_commad_.publish(f_start);
 
 				// useful vectors	
-				Vector_d_7x1 des_ee_pose_eigen;
-				Vector_d_7x1 med_ee_d_pose_eigen;
-				Vector_d_6x1 q;
-				Vector_d_6x1 dq;
-				Matrix_d_4x4 T;
-				Vector_d_4x1 Q;		
-				Vector_d_4x1 Qd;
-				Vector_d_4x1 Qe;
-				Matrix_d_7x6 J;
-				Matrix_d_7x6 M_temp;	
+				Vector_d_6x1 q; 	// current angular position
+				Vector_d_6x1 dq;	// current angular velocity
 
-				Vector_d_7x1 p_term;
-				Vector_d_7x1 d_term;
-				Vector_d_7x1 error_pose;
-
-				MatrixNd M = MatrixNd::Zero(6,6);
-				Matrix_d_7x7 Mx;
-
-				Vector_d_7x1 F;
+				// control terms
+				Vector_d_6x1 p_error;
+				Vector_d_6x1 p_term;
+				Vector_d_6x1 d_error;				
+				Vector_d_6x1 d_term;
 				Vector_d_6x1 u;
 				Vector_d_6x1 tau;
+				
+				// robot dynamics
+				MatrixNd M = MatrixNd::Zero(6,6);	// inertia matrix
+				VectorNd b = VectorNd::Zero(6);	// nonlinear effects vector
 
-				typedef Matrix<double, Dynamic, Dynamic> MatrixX_ld;
-				MatrixX_ld  Jld(7,6);
-				MatrixX_ld  Jinv(6,7);
 
-				// Desired end-effector pose
-				std::vector<double> & des_ee_pose = *ee_pose_command_.readFromRT();
+				// Get desired angular position and velocity
+				std::vector<double> & des_angular_position = *position_command_.readFromRT();
+				std::vector<double> & des_angular_velocity = *velocity_command_.readFromRT();
 
-				for (int i = 0; i < 7; ++i)
-				{
-					des_ee_pose_eigen[i] = des_ee_pose[i];
-				}
-				// Read current position of the joints
+				// Get current angular position and velocity
 				for(unsigned int i=0; i<n_joints_; i++)
 				{										
-					q(i) = joints_[i].getPosition();
-					dq(i) = joints_[i].getVelocity();
+					q[i] = joints_[i].getPosition();
+					dq[i] = joints_[i].getVelocity();
 				}
 				
-				// Desired pose
-				T = fkine_ur5(q);
-				Q = rot2quat(T);
-				Qd(0) = des_ee_pose_eigen(3);
-				Qd(1) = des_ee_pose_eigen(4);
-				Qd(2) = des_ee_pose_eigen(5);
-				Qd(3) = des_ee_pose_eigen(6); 
-				Qe = quatError(Qd, Q);
-
-				// Proportional term
-				p_term(0) = des_ee_pose_eigen(0) - T(0,3);
-				p_term(1) = des_ee_pose_eigen(1) - T(1,3);
-				p_term(2) = des_ee_pose_eigen(2) - T(2,3);
-				p_term(3) = Qe(0);
-				p_term(4) = Qe(1);
-				p_term(5) = Qe(2);
-				p_term(6) = Qe(3);
-
-				error_pose = p_term;
-
-
-				// Funciona bien: No hay vibraciones, ligero error en orientación y posición
-				// xe[0:3] = -3.75941    10.895    10.342  [mm]
-				// xe[3:7] = -0.00151685   0.0235369   0.0497442  0.00170838  // quaternion
-				// KD = 200 200 800 40 40 40
-				// BD = 30  30  60  15  15  15
-				p_term(0) = 200*p_term(0); 
-				p_term(1) = 200*p_term(1);
-				p_term(2) = 800*p_term(2);
-				p_term(3) =  40*p_term(3);
-				p_term(4) =  40*p_term(4);
-				p_term(5) =  40*p_term(5);
-				p_term(6) =  40*p_term(6);
-
-
-				// Derivative Pose
-				J    = jacobianPose(q);  // Jacobian
-				Jld  = J;
-				Jinv = Jld.completeOrthogonalDecomposition().pseudoInverse(); // Jinv
-
-				med_ee_d_pose_eigen = J*dq;
-
-				// Derivative term
-				d_term(0) =  -30*med_ee_d_pose_eigen(0);
-				d_term(1) =  -30*med_ee_d_pose_eigen(1);
-				d_term(2) =  -60*med_ee_d_pose_eigen(2);
-				d_term(3) =  -15*med_ee_d_pose_eigen(3);
-				d_term(4) =  -15*med_ee_d_pose_eigen(4);
-				d_term(5) =  -15*med_ee_d_pose_eigen(5);
-				d_term(6) =  -15*med_ee_d_pose_eigen(6);
-
-				// y = p_term + d_term
-				p_term = p_term + d_term;				
-
-				// M_x = Jinv^T * M * Jinv
-				CompositeRigidBodyAlgorithm(*model_, q, M);
-				M_temp = Jinv.transpose()*M; 
-				Mx = M_temp*Jinv;
-
-				// effort signal
-				F = Mx*p_term;
-				u = J.transpose()*F; 
-				tau = eval_limits_control_singal(u);
-
-
-				// Norm of x y z
-				//double norm_e   = sqrt(error_pose.array().square().sum());
-				double norm_ori = sqrt(error_pose(3)*error_pose(3)+error_pose(4)*error_pose(4)+error_pose(5)*error_pose(5)+
-									   error_pose(6)*error_pose(6));
-				double norm_xyz = sqrt(error_pose(0)*error_pose(0)+error_pose(1)*error_pose(1)+error_pose(2)*error_pose(2));
-
-				/*
-				if (counter_ <= 10)
+				// Control terms
+				for(int i=0; i<6; i++)
 				{
-					std::cout<<"\nx pose:\n"<<des_ee_pose_eigen.transpose()<<std::endl;
-					std::cout<<"\nxe term:\n"<<error_pose.transpose()<<std::endl;
-					//std::cout<<"\nJ mat: \n"<<J<<std::endl;
-					//std::cout<<"\nJinv mat: \n"<<Jinv<<std::endl;
-					//std::cout<<"\nM mat: \n"<<M<<std::endl;
-					std::cout<<"\nMx mat: \n"<<Mx<<std::endl;
-					std::cout<<"\nq term: \n"<<q.transpose()<<std::endl;
-					//std::cout<<"\ntau term:\n"<<tau.transpose()<<std::endl;
-					std::cout<<"----------------------------------------";
-					std::cout<<"\n\n";
+					// Proportional term
+					p_error[i] = des_angular_position[i] - q[i];
+					p_term[i]  = kp_[i]*p_error[i];
+					// Derivative term
+					d_error[i] = des_angular_velocity[i] - dq[i];
+					d_term[i]  = kd_[i]*d_error[i];									
 				}
-				*/
-				// To print position and orientation error
-				counter_ += 1;
-				if (counter_>= 50000){
-					counter_ = 0;
-				}
-				if (counter_%p_rate_ == 0){
-					std::cout<<"\nnorm_xyz: "<<norm_xyz<<"\tnorm_ori: "<<norm_ori<<std::endl;
-				}
-								
+
+				// Robot dynamics
+				CompositeRigidBodyAlgorithm(*model_, q, M); // inertia matrix
+				NonlinearEffects(*model_, q, dq, b);		// nonlinear effects vector
+
+				// control law
+				u = M*p_term + M*d_term + b;
+
+				// safety limits
+				//tau = eval_limits_control_singal(u);
+
 				// send control signal
 				for (int i = 0; i < 6; ++i)
 				{	
-					double effort_command = tau[i];
+					double effort_command = u[i];
 					joints_[i].setCommand(effort_command);
+				}				
+
+				//print
+				counter_ += 1;
+				if (false)
+				{
+					if (counter_>= 50000){
+						counter_ = 0;
+					}
+					if (counter_%p_rate_ == 0){
+						std::cout<<"\n==============="<<std::endl;
+						//std::cout<<"\nq_d: "<<p_error+q<<std::endl;
+						std::cout<<"\nq_e: "<<p_error<<std::endl;
+						std::cout<<"\ndq_e: "<<d_error<<std::endl;
+						std::cout<<"\np_term: "<<M*p_term <<std::endl;
+						std::cout<<"\nd_term: "<<M*d_term<<std::endl;
+						std::cout<<"\nb: "<<b<<std::endl;
+						std::cout<<"\nu: "<<u<<std::endl;
+						
+					}
 				}
+
+
 
 			}
 
