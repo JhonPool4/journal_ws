@@ -32,12 +32,12 @@
 
   <!-- Controller file -->
   <!-- Load joint controller configurations from YAML file to parameter server -->
-  <rosparam file="$(find ur5_description)/control/ur5_controller.yaml" command="load"/>
+  <rosparam file="$(find motion_ur5_gazebo)/config/my_controllers.yaml" command="load"/> 
   
   <!-- load the controllers  -->
   <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
   output="screen" args="joint_state_controller  
-                        trajectory_controller"/> 
+                        PD_controller"/> 
 
 </launch>
 
