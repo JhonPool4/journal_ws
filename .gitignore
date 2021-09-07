@@ -1,7 +1,6 @@
 build/
 devel/
 src/CMakeLists.txt
-readme.md
 src/motion_ur5_rviz/src/Data/
 src/motion_ur5_rviz/src/__pycache__/functions.cpython-38.pyc
 src/motion_ur5_rviz/src/__pycache__/markers.cpython-38.pyc
