@@ -9,14 +9,30 @@ Ros Workspace:
 
     Requirements:
     -------------
-    - Ros Noetic
-    - RBDL (review how_to_install_rbdl_python3.txt)
+    - Ros Noetic (http://wiki.ros.org/noetic/Installation/Ubuntu)
+    - RBDL (review how_to_install_rbdl_orb)
     - Pandas (>=2.24)
 
-    Install: (in process)
-    --------
-    - Set ros workspace as "~/catkin_ws/journal_ws/"
+    Config workspace: (in process)
+    ----------------
+    - mkdir -p ~/catkin_ws/journal_ws/src
+    - cd ~/catkin_ws/journal_ws/ 
+    - catkin_make
+    - gedit ~/.bashrc
+    - Add these lines:
+        # ROS
+        source /opt/ros/noetic/setup.bash
 
+        # ROS WORKSPACE
+        work_space="catkin_ws/journal_ws"
+        source ~/$work_space/devel/setup.bash
+
+    - source ~/.bashrc
+    - cd ~/catkin_ws/
+    - git clone https://github.com/JhonPool4/journal_ws.git
+    - cd ~/catkin_ws/journal_ws/ 
+    - catkin_make    
+    
 Packages info:
 --------------
     ur5_description: 

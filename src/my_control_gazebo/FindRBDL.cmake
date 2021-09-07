@@ -18,26 +18,24 @@ SET (RBDL_URDFReader_FOUND FALSE)
 # RBDL directory path
 FIND_PATH (RBDL_INCLUDE_DIR rbdl/rbdl.h
 	HINTS
-	~/catkin_ws/rbdl_ws/install/include
+	$ENV{rbdl_include_dir}
 	)
 # RBDL library path
 FIND_LIBRARY (RBDL_LIBRARY NAMES rbdl
 	PATHS
-	~/catkin_ws/rbdl_ws/install/lib		
+	$ENV{rbdl_lib}
 	)
 
 # URDF Reader directory path 
 FIND_PATH (RBDL_URDFReader_INCLUDE_DIR rbdl/addons/urdfreader/urdfreader.h
 	HINTS
-	~/catkin_ws/rbdl_ws/install/include
+	$ENV{rbdl_urdfreader_include_dir}
 	)
 # URDF Reader library path
 FIND_LIBRARY (RBDL_URDFReader_LIBRARY NAMES rbdl_urdfreader
 	PATHS
-	~/catkin_ws/rbdl_ws/install/lib			
+	$ENV{rbdl_urdfreader_lib}			
 	)
-
-
 
 IF (NOT RBDL_LIBRARY)
 	MESSAGE (ERROR "Could not find RBDL")
