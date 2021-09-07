@@ -13,21 +13,29 @@ Ros Workspace:
     - RBDL (review how_to_install_rbdl_orb)
     - Pandas (>=2.24)
 
-    Config workspace: (in process)
-    ----------------
-    - mkdir -p ~/catkin_ws/journal_ws/src
-    - cd ~/catkin_ws/journal_ws/ 
-    - catkin_make
+    Config .bashrc:
+    ---------------
     - gedit ~/.bashrc
     - Add these lines:
         # ROS
         source /opt/ros/noetic/setup.bash
 
-        # ROS WORKSPACE
-        work_space="catkin_ws/journal_ws"
-        source ~/$work_space/devel/setup.bash
+        # ROS WORKSPACE (don't modify)
+        export work_space="${HOME}/catkin_ws/journal_ws"
+        source $work_space/devel/setup.bash
 
-    - source ~/.bashrc
+        # RBDL: environment variables (modify to your setup)
+        export rbdl_include_dir="${HOME}/catkin_ws/rbdl_ws/install/include"
+        export rbdl_lib="${HOME}/catkin_ws/rbdl_ws/install/lib"
+        export rbdl_urdfreader_include_dir="${HOME}/catkin_ws/rbdl_ws/install/include"
+        export rbdl_urdfreader_lib="${HOME}/catkin_ws/rbdl_ws/install/lib"
+        # RBDL: python library (could be modified)
+        export LD_LIBRARY_PATH=$rbdl_lib:$LD_LIBRARY_PATH
+        export PYTHONPATH=$rbdl_lib/python/:$PYTHONPATH    
+
+    Config workspace:
+    ----------------
+    - mkdir -p ~/catkin_ws/journal_ws/src
     - cd ~/catkin_ws/
     - git clone https://github.com/JhonPool4/journal_ws.git
     - cd ~/catkin_ws/journal_ws/ 
