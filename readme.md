@@ -2,7 +2,10 @@ Ros Workspace:
 --------------
     Info:
     -----
-    - Control the ur5 robot with the proportional-derivative and sliding mode control method. The two control methods modify their control gains with a cost function focus on minimizing the position and jerk error. Finally, the robot with the control methods could be simulated in gazebo or rviz.
+    - Control the ur5 robot with the proportional-derivative and sliding mode control method. 
+    The two control methods modify their control gains with a cost function focus on minimizing 
+    the position and jerk error. Finally, the robot with the control methods could be simulated 
+    in gazebo or rviz.
 
     Requirements:
     -------------
