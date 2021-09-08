@@ -74,7 +74,7 @@ Packages info:
 
 Doing:
 ------    
--- improve documentation of each ros package and commands
+- file to save data from circ trajectory
 
 To Do:
 ------
@@ -84,3 +84,4 @@ To Do:
 Done
 ------
 -- implement a pd control template gazebo
+-- improve documentation of each ros package and commands
