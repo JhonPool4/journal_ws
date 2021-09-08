@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+
+import rospy
+from my_control_gazebo.msg import AngularPosition
+from my_control_gazebo.msg import AngularVelocity
+from std_msgs.msg import Int64
+from functions import *
+
+class SaveDataTrayectory:  
+    def __init__(self):
+        self.start_command_sub    = rospy.Subscriber("PD_controller/f_start",Int64, self.startCB)
+        self.position_command_sub = rospy.Subscriber('PD_controller/position_command', AngularPosition, self.position_command_CB)
+        self.velocity_command_sub = rospy.Subscriber('PD_controller/velocity_command', AngularVelocity, self.velocity_command_CB)
+        self.current_position_sub = rospy.Subscriber('PD_controller/current_position', AngularPosition, self.current_position_CB)
+        self.current_velocity_sub = rospy.Subscriber('PD_controller/current_velocity', AngularVelocity, self.current_velocity_CB)
+
+        # start flag
+        self.f_start = 0
+        # command states
+        self.position_command = np.zeros(6)
+        self.velocity_command = np.zeros(6)
+        # current states
+        self.current_position = np.zeros(6)
+        self.current_velocity = np.zeros(6)
+
+    def startCB(self, msg):
+        self.f_start = msg.data
+    def position_command_CB(self, msg):
+        self.position_command[0] = msg.q1
+        self.position_command[1] = msg.q2
+        self.position_command[2] = msg.q3
+        self.position_command[3] = msg.q4
+        self.position_command[4] = msg.q5
+        self.position_command[5] = msg.q6
+
+    def velocity_command_CB(self, msg):
+        self.velocity_command[0] = msg.dq1
+        self.velocity_command[1] = msg.dq2
+        self.velocity_command[2] = msg.dq3
+        self.velocity_command[3] = msg.dq4
+        self.velocity_command[4] = msg.dq5
+        self.velocity_command[5] = msg.dq6
+
+    def current_position_CB(self, msg):
+        self.current_position[0] = msg.q1
+        self.current_position[1] = msg.q2
+        self.current_position[2] = msg.q3
+        self.current_position[3] = msg.q4
+        self.current_position[4] = msg.q5
+        self.current_position[5] = msg.q6
+
+    def current_velocity_CB(self, msg):
+        self.current_velocity[0] = msg.dq1
+        self.current_velocity[1] = msg.dq2
+        self.current_velocity[2] = msg.dq3
+        self.current_velocity[3] = msg.dq4
+        self.current_velocity[4] = msg.dq5
+        self.current_velocity[5] = msg.dq6
+
+if __name__ == '__main__':
+    # Create a nodo: save data trajectory
+    rospy.init_node("save_data_trajectory")
+
+
