@@ -24,11 +24,15 @@ Ros Workspace:
         export work_space="${HOME}/catkin_ws/journal_ws"
         source $work_space/devel/setup.bash
 
+        # EIGEN3: environment variable
+        export eigien3_include_dir="/usr/include/eigen3/Eigen"
+
         # RBDL: environment variables (modify to your setup)
         export rbdl_include_dir="${HOME}/catkin_ws/rbdl_ws/install/include"
         export rbdl_lib="${HOME}/catkin_ws/rbdl_ws/install/lib"
         export rbdl_urdfreader_include_dir="${HOME}/catkin_ws/rbdl_ws/install/include"
         export rbdl_urdfreader_lib="${HOME}/catkin_ws/rbdl_ws/install/lib"
+        
         # RBDL: python library (could be modified)
         export LD_LIBRARY_PATH=$rbdl_lib:$LD_LIBRARY_PATH
         export PYTHONPATH=$rbdl_lib/python/:$PYTHONPATH    
