@@ -62,43 +62,43 @@ if __name__ == '__main__':
 
     while not rospy.is_shutdown():
         if (circ_traj.f_start == 1):
-            # desired values (cartesian space)
-            x_des[0:3], dx_des[0:3], ddx_des[0:3], dddx_des[0:3] = circular_trayectory_generator(t)
-            
-            # reference values (cartesian space)
-            x_ref[0:3], dx_ref[0:3], ddx_ref[0:3] = reference_trajectory(x_des[0:3], x_ref[0:3], dx_ref[0:3], dt)
+          # desired values (cartesian space)
+          x_des[0:3], dx_des[0:3], ddx_des[0:3], dddx_des[0:3] = circular_trayectory_generator(t)
+          
+          # reference values (cartesian space)
+          x_ref[0:3], dx_ref[0:3], ddx_ref[0:3] = reference_trajectory(x_des[0:3], x_ref[0:3], dx_ref[0:3], dt)
 
-            # Inverse kinematics
-            q_des, dq_des, ddq_des, dddq_des = ikine_pose_ur5(x_ref, dx_ref, q_des, dq_des, ddq_des)	# It starts with q_des=copy(q0)
+          # Inverse kinematics
+          q_des, dq_des, ddq_des, dddq_des = ikine_pose_ur5(x_ref, dx_ref, q_des, dq_des, ddq_des)	# It starts with q_des=copy(q0)
 
-            # Set message: Position
-            position_command.q1 = q_des[0]
-            position_command.q2 = q_des[1]
-            position_command.q3 = q_des[2]
-            position_command.q4 = q_des[3]
-            position_command.q5 = q_des[4]
-            position_command.q6 = q_des[5]
+          # Set message: Position
+          position_command.q1 = q_des[0]
+          position_command.q2 = q_des[1]
+          position_command.q3 = q_des[2]
+          position_command.q4 = q_des[3]
+          position_command.q5 = q_des[4]
+          position_command.q6 = q_des[5]
 
-            # Set message: Velocity
-            velocity_command.dq1 = dq_des[0]
-            velocity_command.dq2 = dq_des[1]
-            velocity_command.dq3 = dq_des[2]
-            velocity_command.dq4 = dq_des[3]
-            velocity_command.dq5 = dq_des[4]
-            velocity_command.dq6 = dq_des[5]
+          # Set message: Velocity
+          velocity_command.dq1 = dq_des[0]
+          velocity_command.dq2 = dq_des[1]
+          velocity_command.dq3 = dq_des[2]
+          velocity_command.dq4 = dq_des[3]
+          velocity_command.dq5 = dq_des[4]
+          velocity_command.dq6 = dq_des[5]
 
-            # Publish position and velocity commands
-            circ_traj.position_command_pub.publish(position_command)
-            circ_traj.velocity_command_pub.publish(velocity_command)
+          # Publish position and velocity commands
+          circ_traj.position_command_pub.publish(position_command)
+          circ_traj.velocity_command_pub.publish(velocity_command)
 
-            # time
-            t = t + 0.01
-            # sleep
-            rate.sleep()
+          # time
+          t = t + 0.01
+          # sleep
+          rate.sleep()
 
         
         else:
-            # wait
-            print("waiting start signal...")
-            #rospy.spinOnce()
+          # wait
+          print("waiting start signal...")
+          #rospy.spinOnce()
 
