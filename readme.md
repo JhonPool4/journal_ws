@@ -24,7 +24,7 @@ Ros Workspace:
         export work_space="${HOME}/catkin_ws/journal_ws"
         source $work_space/devel/setup.bash
 
-        # EIGEN3: environment variable
+        # EIGEN3: environment variable (could be modified)
         export eigien3_include_dir="/usr/include/eigen3/Eigen"
 
         # RBDL: environment variables (modify to your setup)
@@ -44,6 +44,12 @@ Ros Workspace:
     - git clone https://github.com/JhonPool4/journal_ws.git
     - cd ~/catkin_ws/journal_ws/ 
     - catkin_make    
+
+    Aditional Ros packages:
+    ---------------------
+    - sudo apt-get install ros-melodic-ros-control
+    - sudo apt-get install ros-melodic-ros-controllers
+
     
 Packages info:
 --------------
@@ -62,8 +68,8 @@ Packages info:
     motion_ur5_gazebo:
     ------------------
     - This package use gazebo and rbdl to simulate ur5 robot with the control methods.
-    - ur5 robot + PD control method: roslaunch motion_ur5_gazebo articular_PDi_UR5.launch(process)
-    - ur5 robot + sliding mode control method: roslaunch motion_ur5_gazebo articular_SMCi_UR5.launch (process)
+    - ur5 robot + PD control method: roslaunch motion_ur5_gazebo articular_PDi_UR5.launch (in process)
+    - ur5 robot + sliding mode control method: roslaunch motion_ur5_gazebo articular_SMCi_UR5.launch (in process)
 
     my_control_gazego:
     ------------------
@@ -78,10 +84,10 @@ Doing:
 
 To Do:
 ------
-- add optimization equations in pd control template
+- add optimization equations in PD control template
 - solve position problems in /joint_states
 
 Done
 ------
--- implement a pd control template gazebo
--- improve documentation of each ros package and commands
+- implement a PD control template gazebo
+- improve documentation of each ros package and commands
