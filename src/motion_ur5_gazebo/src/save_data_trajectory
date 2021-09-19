@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-
+import os
 import rospy
+import pandas as pd
 from my_control_gazebo.msg import AngularPosition
 from my_control_gazebo.msg import AngularVelocity
 from std_msgs.msg import Int64
@@ -13,7 +14,7 @@ class SaveDataTrayectory:
         self.velocity_command_sub = rospy.Subscriber('PD_controller/velocity_command', AngularVelocity, self.velocity_command_CB)
         self.current_position_sub = rospy.Subscriber('PD_controller/current_position', AngularPosition, self.current_position_CB)
         self.current_velocity_sub = rospy.Subscriber('PD_controller/current_velocity', AngularVelocity, self.current_velocity_CB)
-
+        
         # start flag
         self.f_start = 0
         # command states
@@ -58,7 +59,60 @@ class SaveDataTrayectory:
         self.current_velocity[5] = msg.dq6
 
 if __name__ == '__main__':
-    # Create a nodo: save data trajectory
+    # Create a nodo
     rospy.init_node("save_data_trajectory")
+    
+    # Loop rate (in Hz)
+    rate 	= rospy.Rate(100)		# 100 [Hz]
+    dt 		= 1e-2					# 10  [ms]    
+
+    # Class
+    save_data=SaveDataTrayectory()
+
+    # Create directory to save data
+    origin 	= './Data/PDi'
+    suffix 	= 'circular_traj'
+    cwd = os.path.dirname(os.path.realpath(__file__))
+    folder = os.path.join(cwd, origin, suffix)
+
+    column_names = [       
+        'q1', 'q2', 'q3', 'q4', 'q5', 'q6',
+        'dq1', 'dq2', 'dq3', 'dq4', 'dq5', 'dq6',
+
+        'q1_des', 'q2_des', 'q3_des', 'q4_des', 'q5_des', 'q6_des',
+        'dq1_des', 'dq2_des', 'dq3_des', 'dq4_des', 'dq5_des', 'dq6_des'
+        ]
+
+    df = pd.DataFrame(columns=column_names)
+
+    # Filename
+    #fn = "articular"+"_kp_"+str(KP[0])+"_alpha_"+str(alpha)+"_beta_"+str(beta)+"_gamma_"+str(gamma)+"_t_"+str(t_reach)+".csv"
+    fn = "borrar_articular_test"
+
+    # Creates folder if it does not exist
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    path = os.path.join(folder, fn)
+    df.to_csv(path, index=False) 
+
+    while not rospy.is_shutdown():
+        if (save_data.f_start == 1):
+
+        # Append data
+        row = tl(q)+tl(dq) + tl(q_des)+tl(dq_des)
+
+    	row = tl(np.expand_dims(np.array(row), axis = 1))
+
+        # Fix for redimensionality
+        df_row = pd.DataFrame.from_dict(dict(zip(column_names, row)))
+
+        df.append(df_row, sort = False).to_csv(path, index=False, mode = 'a', header=False)    
+
+        rate.sleep()  
+
+        else:
+          # wait
+          print("waiting start signal...")
 
 
