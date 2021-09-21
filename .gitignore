@@ -6,3 +6,5 @@ src/motion_ur5_rviz/src/__pycache__/functions.cpython-38.pyc
 src/motion_ur5_rviz/src/__pycache__/markers.cpython-38.pyc
 src/motion_ur5_gazebo/package_commads.txt
 src/motion_ur5_gazebo/src/__pycache__/ 
+install/
+src/rbdl
