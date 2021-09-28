@@ -1,5 +1,5 @@
 # -----------------------
-# How to isntall RBDL-ORB 
+# How to install RBDL-ORB 
 # -----------------------
 
 # Cloning repository
@@ -10,6 +10,10 @@ mkdir rbdl-buidl/; cd rbdl-build/
 
 # Set cmake (remember to modify workspace)
 cmake -D CMAKE_BUILD_TYPE=Release .. -DRBDL_BUILD_PYTHON_WRAPPER=ON -DCMAKE_INSTALL_PREFIX=~/catkin_ws/rbdl_ws/install -DRBDL_BUILD_ADDON_URDFREADER=ON -DRBDL_USE_ROS_URDF_LIBRARY=OFF -Wno-dev -Wcpp
+
+# If user is using ROS version<Noetic, it should add a python2 option
+cmake -D CMAKE_BUILD_TYPE=Release .. -DRBDL_BUILD_PYTHON_WRAPPER=ON -DCMAKE_INSTALL_PREFIX=~/catkin_ws/rbdl_ws/install -DRBDL_USE_PYTHON_2=ON -DRBDL_BUILD_ADDON_URDFREADER=ON -DRBDL_USE_ROS_URDF_LIBRARY=OFF -Wno-dev -Wcpp
+
 
 # Generate libraries
 make
