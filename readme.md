@@ -27,7 +27,7 @@ Ros Workspace:
         # EIGEN3: environment variable (could be modified)
         export eigien3_include_dir="/usr/include/eigen3/Eigen"
 
-        # RBDL: environment variables (modify to your setup)
+        # RBDL: environment variables (modify to your setup!)
         export rbdl_include_dir="${HOME}/catkin_ws/rbdl_ws/install/include"
         export rbdl_lib="${HOME}/catkin_ws/rbdl_ws/install/lib"
         export rbdl_urdfreader_include_dir="${HOME}/catkin_ws/rbdl_ws/install/include"
