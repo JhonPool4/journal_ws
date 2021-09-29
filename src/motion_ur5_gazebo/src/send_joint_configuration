@@ -99,18 +99,3 @@ if __name__ == '__main__':
           rate.sleep()
 
         
-        else:
-<<<<<<< HEAD:src/motion_ur5_gazebo/src/send_joints_pos_vel_from_circ_traj_gazebo
-            # wait
-            print("waiting start signal...")
-<<<<<<< HEAD
-            #rospy.spinOnce()
-=======
-            #rospy.spinOnce()
-=======
-          # wait
-          print("waiting start signal...")
-          #rospy.spinOnce()
->>>>>>> dev:src/motion_ur5_gazebo/src/send_joint_configuration
-
->>>>>>> dev
