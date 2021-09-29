@@ -17,7 +17,11 @@ make
 # Install libraries
 make install
 
-# Move rbdl.so from build/python to install/
+# Create directory to save the rbdl library (rbdl.so)
+cd ~/catkin_ws/rbdl_ws/
+mkdir -p install/lib/
+
+# Move rbdl.so from build/python to install/lib/
 cd ~/catkin_ws/rbdl_ws/install/lib/                                 # Change directory
 cp ~/catkin_ws/rbdl_ws/src/rbdl-orb/rbdl-buidl/python/rbdl.so .
 
