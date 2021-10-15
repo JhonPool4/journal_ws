@@ -137,6 +137,7 @@ dKP = np.zeros(6)
 dKD = np.zeros(6)
 
 u  = np.zeros(6)
+up = np.zeros(6)
 
 # ================================
 # 		Dynamic simulation
@@ -272,18 +273,27 @@ while not rospy.is_shutdown():
 		  np.multiply(dKD, de) - np.multiply(KD, dde)
 	
 	#cost function
-	c = gamma *0.5*np.multiply(P1,P1) + beta*0.5*np.multiply(P2,P2) 	# [6x1]
+	c = gamma *0.5*np.dot(P1.transpose(),P1) + beta*0.5*np.dot(P2.transpose(),P2) 	# [6x1]
 	
 	# Gradient descent
 	dP1_q = -copy(KP) 					# [6x1]
 	dP2_q = +copy(dKP) 					# [6x1]
 
+	# partial derivative of J (cost) with respecto to q(output)
 	dJ_q  = gamma*np.multiply(P1, dP1_q) + beta*np.multiply(P2, dP2_q)	# [6x1]
-
+	
+	# partial derivative of q (output) with respect to u (control)
+	nonzero = (u!=up) 	# to avoid problems when du=0
+	du = (u-up)*nonzero
+	dq_du = np.sign(np.multiply(dq, du))
+	
+	# partial derivative of u (control) with respect to k (control gain)
 	du_KP = np.dot(M, e)				# [6x1]
 	du_KD = np.dot(M, de)   			# [6x1]
-	dJ_KP = np.multiply(dJ_q, du_KP) 	# [6x1]
-	dJ_KD = np.multiply(dJ_q, du_KD) 	# [6x1]	
+
+	# gradient with respecto to each control gain
+	dJ_KP = np.multiply(np.multiply(dJ_q, dq_du), du_KP) 	# [6x1]
+	dJ_KD = np.multiply(np.multiply(dJ_q, dq_du), du_KD) 	# [6x1]	
 
 	# New value of KP and KD
 	crit_p = (1000)*np.sqrt(np.sum(np.power(x_e[0:3],2))) 	 # [mm]
@@ -299,6 +309,7 @@ while not rospy.is_shutdown():
 	
 	# Print
 	print("t: ", np.round(t,2))
+	print("du; ", dq_du)
 	print("KP: ", KP)
 	print("KD: ", KD) 
 	print("c:  ", c)
@@ -329,8 +340,9 @@ while not rospy.is_shutdown():
 
 	df.append(df_row, sort = False).to_csv(path, index=False, mode = 'a', header=False)
 
-	# Time
+	# Update
 	t = t + dt
+	up = copy(u)
 
 	if t>=(t_reach): # 10 min
 		print("Reached maximum of steps")
