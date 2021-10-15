@@ -36,16 +36,19 @@ import rbdl								# Library to compute dynamic matrix H and B of robot
 pi = np.pi 								# Define "pi"
 from datetime import datetime
 
+
 # ===============================
 # 		Configuration of node
 # ===============================
 # Create a nodo: SMC_controller
 rospy.init_node("PDi_controller_ur5")
-cwd = os.path.dirname(os.path.realpath(__file__))
-
 
 # Public in topic /joint_states	to send joint data		
 pub = rospy.Publisher('joint_states', JointState, queue_size=1000)
+
+# Loop rate (in Hz)
+rate 	= rospy.Rate(100)		# 100 [Hz]
+dt 		= 1e-2					# 10  [ms]
 
 # ===============================
 # 		Line and Ball Marker
@@ -55,32 +58,12 @@ bmarker_des 	= BallMarker(color['GREEN'])
 bmarker_act  	= BallMarker(color['YELLOW'])
 
 # =============================================================
-# 					Robot Dynamics
-# =============================================================
-modelo = rbdl.loadModel(os.path.join(cwd,'../../ur5_description/urdf/ur5_joint_limited_robot.urdf'))
-ndof   = modelo.q_size     # Degrees of Freedom
-
-# Generar objeto/espacio del vector b y M
-b = np.zeros(ndof)
-M = np.zeros((ndof,ndof))
-
-# Joints name of UR5 robot
-jnames = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint','wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
-
-# Object(messague) type JointState
-jstate = JointState()
-
-# Loop rate (in Hz)
-rate 	= rospy.Rate(100)		# 100 [Hz]
-dt 		= 1e-2					# 10  [ms]
-
-# =============================================================
 # 				Set home joint configuration of UR5
 # =============================================================
 #  Home joint configuration of ur5 robot (radians)
 q 		    = np.array([0.22555947, -2.16092376, -2.13975583, -0.41997402,  1.53827725, -1.35006513]) # Center [0.5 +0.0 0.0]
-dq 			= np.zeros(ndof)
-ddq 		= np.zeros(ndof)
+dq 			= np.zeros(6)
+ddq 		= np.zeros(6)
 
 # Reference angular position, velocity and acceleration
 x_ref   = np.zeros(7)
@@ -120,8 +103,26 @@ dx_e   = np.zeros(7)
 ddx_e  = np.zeros(7)
 dddx_e = np.zeros(7)
 
+# =============================================================
+# 					Robot Dynamics
+# =============================================================
+# location of ur5.urdf
+pwd = os.path.dirname(os.path.realpath(__file__))
+urdf_path = os.path.join(pwd,'../../ur5_description/urdf/ur5_joint_limited_robot.urdf')
+
 # Create a object Robot with dynamics of UR5 robot (code in Functions)
-UR5_robot = Robot(q, dq, ndof, dt)
+ur5_robot = Robot(q, dq, dt, urdf_path)
+ndof = ur5_robot.ndof # degrees of freedom
+
+# Generar objeto/espacio del vector b y M
+b = np.zeros(ndof)
+M = np.zeros((ndof,ndof))
+
+# Joints name of UR5 robot
+jnames = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint','wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
+
+# Object(messague) type JointState
+jstate = JointState()
 
 # ================================
 # 			PD controller
@@ -129,7 +130,7 @@ UR5_robot = Robot(q, dq, ndof, dt)
 alpha = 50*dt # 10 50 80
 gamma = 0.8
 beta  = 0.2
-KP    = 0.5*np.array([1, 1, 1, 1, 1, 1])
+KP    = 5*np.array([1, 1, 1, 1, 1, 1])
 KD    = 2*np.sqrt(KP)
 dJ_KP = np.zeros(6)
 dJ_KD = np.zeros(6)
@@ -143,13 +144,18 @@ up = np.zeros(6)
 # 		Dynamic simulation
 # ================================
 t = 0.0
-t_reach = 20 # secs
+t_reach = 60 # secs
 
-origin 	= './Data/PDi'
+# =============
+# 	Save data
+# =============
+origin 	= '../data/PDi'
 suffix 	= 'circular_traj'
-folder = os.path.join(cwd, origin, suffix)
+folder = os.path.join(pwd, origin, suffix)
 
 column_names = [
+	't',
+
 	'x', 'y', 'z', 'w', 'ex', 'ey', 'ez',
 	'dx', 'dy', 'dz', 'dw', 'dex', 'dey', 'dez',	
 	'ddx', 'ddy', 'ddz', 'ddw', 'ddex', 'ddey', 'ddez',
@@ -186,19 +192,16 @@ column_names = [
 df = pd.DataFrame(columns=column_names)
 
 # Filename
-now = datetime.now()
-now = now.strftime("%d%m%Y_%H-%M-%S")
-#fn = now
 fn = "articular"+"_kp_"+str(KP[0])+"_alpha_"+str(alpha)+"_beta_"+str(beta)+"_gamma_"+str(gamma)+"_t_"+str(t_reach)+".csv"
-#fn = "borrar_articular_test"
 
 # Creates folder if it does not exist
-
 if not os.path.exists(folder):
 	os.makedirs(folder)
 
+# save file .csv
 path = os.path.join(folder, fn)
 df.to_csv(path, index=False)
+
 
 while not rospy.is_shutdown():
 	# desired values (cartesian space)
@@ -218,11 +221,8 @@ while not rospy.is_shutdown():
 	de 	=  dq_des - dq
 	dde =  ddq_des - ddq
 
-	# Calcular b y M
-	#rbdl.NonlinearEffects(modelo, q, dq, b)
-	#rbdl.CompositeRigidBodyAlgorithm(modelo, q, M)
-	#b_est = UR5_robot.get_b()
-	M  	  = UR5_robot.get_M()
+	# Computes inertia matrix
+	M  	  = ur5_robot.get_M()
 	
 	# SMC articular + Feedback linearization
 	b_est = u - np.dot(M, ddq)  			
@@ -230,12 +230,12 @@ while not rospy.is_shutdown():
 	
 	# Send control signal
 	u 		= saturador_effort_control_UR5(u)
-	UR5_robot.send_command(u)
+	ur5_robot.send_command(u)
 
 	# Read position, velocity, and acceleration angular of UR5 joints
-	q  		= UR5_robot.read_joint_positions()
-	dq 		= UR5_robot.read_joint_velocities()
-	ddq 	= UR5_robot.read_joint_accelerations()
+	q  		= ur5_robot.read_joint_positions()
+	dq 		= ur5_robot.read_joint_velocities()
+	ddq 	= ur5_robot.read_joint_accelerations()
 
 	# Publish message
 	jstate.header.stamp = rospy.Time.now()
@@ -243,7 +243,6 @@ while not rospy.is_shutdown():
 	jstate.position 	= q
 	jstate.velocity 	= dq
 	pub.publish(jstate)
-
 
 	# Current position and velocity of UR5 end-effector
 	x_act[0:7]  = get_current_pose(q)
@@ -273,7 +272,7 @@ while not rospy.is_shutdown():
 		  np.multiply(dKD, de) - np.multiply(KD, dde)
 	
 	#cost function
-	c = gamma *0.5*np.dot(P1.transpose(),P1) + beta*0.5*np.dot(P2.transpose(),P2) 	# [6x1]
+	c = gamma *0.5*np.dot(P1.transpose(),P1) + beta*0.5*np.dot(P2.transpose(),P2) 	# [1x1]
 	
 	# Gradient descent
 	dP1_q = -copy(KP) 					# [6x1]
@@ -298,7 +297,7 @@ while not rospy.is_shutdown():
 	# New value of KP and KD
 	crit_p = (1000)*np.sqrt(np.sum(np.power(x_e[0:3],2))) 	 # [mm]
 	crit_a = (180/np.pi)*np.sqrt(np.sum(np.power(e[0:6],2))) # [°]
-	
+		
 	# Upgrade control gains
 	KP[0:6] = KP[0:6] - alpha*dJ_KP[0:6] 	#[6x1]  
 	KD[0:6] = KD[0:6] - alpha*dJ_KD[0:6] 	#[6x1]	
@@ -309,7 +308,7 @@ while not rospy.is_shutdown():
 	
 	# Print
 	print("t: ", np.round(t,2))
-	print("du; ", dq_du)
+	print("du: ", dq_du)
 	print("KP: ", KP)
 	print("KD: ", KD) 
 	print("c:  ", c)
@@ -322,7 +321,7 @@ while not rospy.is_shutdown():
 	print("\n")
 
 	# Append data
-	row = tl(x_act)+tl(dx_act)+tl(ddx_act)+tl(dddx_act)+\
+	row = tl(np.array([t]))+tl(x_act)+tl(dx_act)+tl(ddx_act)+tl(dddx_act)+\
 		  tl(x_des)+tl(dx_des)+tl(ddx_des)+tl(dddx_des)+\
 		  tl(x_e)+tl(dx_e)+tl(ddx_e)+tl(dddx_e)+\
 		  tl(q)+tl(dq)+tl(ddq)+\
@@ -344,7 +343,7 @@ while not rospy.is_shutdown():
 	t = t + dt
 	up = copy(u)
 
-	if t>=(t_reach): # 10 min
+	if t>=(t_reach): # 60 sec
 		print("Reached maximum of steps")
 		break
 
