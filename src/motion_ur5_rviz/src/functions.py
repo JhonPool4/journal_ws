@@ -62,7 +62,7 @@ def rot2quat(R):
     -------
         - Q: Quaternion [w, ex, ey, ez]
     """
-    dEpsilon = 1e-6;
+    dEpsilon = 1e-6
     quat = 4*[0.,]
 
     quat[0] = 0.5*np.sqrt(R[0,0]+R[1,1]+R[2,2]+1.0)
@@ -260,16 +260,16 @@ class Robot(object):
     """
     @info A robot with dynamics of UR5 robot
     """    
-    def __init__(self, q0, dq0, ndof, dt):
-        cwd = os.path.dirname(os.path.realpath(__file__))
-        self.q  = q0    # numpy array (ndof x 1)
-        self.dq = dq0  # numpy array (ndof x 1)
-        self.ddq = np.zeros(ndof)
-        self.M  = np.zeros([ndof, ndof])
-        self.b  = np.zeros(ndof)
-        self.z  = np.zeros(ndof)
+    def __init__(self, q0, dq0, dt, urdf_path):
+        self.robot = rbdl.loadModel(urdf_path)
+        self.ndof = self.robot.q_size
+        self.q  = q0    
+        self.dq = dq0   
+        self.ddq = np.zeros(self.ndof)
+        self.M  = np.zeros([self.ndof, self.ndof])
+        self.b  = np.zeros(self.ndof)
+        self.z  = np.zeros(self.ndof)
         self.dt = dt
-        self.robot = rbdl.loadModel(os.path.join(cwd,'../../ur5_description/urdf/ur5_joint_limited_robot.urdf'))
 
     def send_command(self, tau):
         tau = np.squeeze(np.asarray(tau))
