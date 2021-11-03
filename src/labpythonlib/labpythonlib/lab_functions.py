@@ -103,6 +103,56 @@ def rot2axisangle(R):
         axis = np.zeros(3)
     return angle, axis
 
+def rot2quat(R):
+    """
+    @info: computes quaternion from rotation matrix
+    
+    @input:
+    ------
+        - R: Rotation matrix
+    @output:
+    -------
+        - Q: Quaternion [w, ex, ey, ez]
+    """
+    dEpsilon = 1e-6
+    Q = np.zeros(4)
+    
+    Q[0] = 0.5*np.sqrt(R[0,0]+R[1,1]+R[2,2]+1.0)
+    if ( np.fabs(R[0,0]-R[1,1]-R[2,2]+1.0) < dEpsilon ):
+        Q[1] = 0.0
+    else:
+        Q[1] = 0.5*np.sign(R[2,1]-R[1,2])*np.sqrt(R[0,0]-R[1,1]-R[2,2]+1.0)
+    if ( np.fabs(R[1,1]-R[2,2]-R[0,0]+1.0) < dEpsilon ):
+        Q[2] = 0.0
+    else:
+        Q[2] = 0.5*np.sign(R[0,2]-R[2,0])*np.sqrt(R[1,1]-R[2,2]-R[0,0]+1.0)
+    if ( np.fabs(R[2,2]-R[0,0]-R[1,1]+1.0) < dEpsilon ):
+        Q[3] = 0.0
+    else:
+        Q[3] = 0.5*np.sign(R[1,0]-R[0,1])*np.sqrt(R[2,2]-R[0,0]-R[1,1]+1.0)
+
+    return Q      
+
+def quatError(Qdes, Qmed):
+    """
+    @info: computes quaterion error (Q_e = Q_d . Q_m*).
+
+    @inputs:
+    ------
+        - Qdes: desired quaternion
+        - Q : measured quaternion
+
+    @output:
+    -------
+        - Qe : quaternion error    
+    """
+
+    we = Qdes[0]*Qmed[0] + np.dot(Qdes[1:4].T,Qmed[1:4]) - 1
+    e  = -Qdes[0]*Qmed[1:4] + Qmed[0]*Qdes[1:4] - np.cross(Qdes[1:4], Qmed[1:4])
+    Qe = np.array([ we, e[0], e[1], e[2] ])
+
+    return Qe               
+
 def rpy2rot(rpy):
     """
     @info: computes rotation matrix from roll, pitch, yaw (ZYX euler angles) representation
@@ -455,6 +505,45 @@ class Robot(object):
             e   = x_des - p      # position error
             J   = self.jacobian(q)[0:3, 0:self.ndof] # position jacobian [3x6]
             J_damped_inv =  self.jacobian_damped_pinv(J, lambda_) # inverse jacobian [6x3]
+            dq  = np.dot(J_damped_inv, e)
+            q   = q + delta*dq
+                       
+            # evaluate convergence criterion
+            if (np.linalg.norm(e)<best_norm_e):
+                best_norm_e = np.linalg.norm(e)
+                q_best = copy(q) 
+        return q_best 
+
+    def inverse_kinematics_pose(self, x_des, q0):
+        """
+        @info: computes inverse kinematics with the method of damped pseudo-inverse.
+
+        @inputs:
+        -------
+            - xdes  :   desired pose vector
+            - q0    :   initial joint configuration (it's very important)
+        @outputs:
+        --------        
+            - q_best  : joint position
+        """         
+        best_norm_e     = 1e-6 
+        max_iter        = 10
+        delta           = 1
+        lambda_         = 0.0000001
+        q               = copy(q0)
+
+        for i in range(max_iter):
+            p, R = self.forward_kinematics(q) # current position
+            # error: position (xyz)
+            e_p = x_des[0:3] - p                  
+            # error: orientation axis/angle
+            e_o = quatError(x_des[3:7], rot2quat(R))    # orientation error
+            # error: position and orientation
+            e = np.concatenate((e_p,e_o), axis=0) # [6x1] 
+            # jacobian
+            J   = self.jacobian(q)
+            # jacobian: pseudo-inverse
+            J_damped_inv =  damped_pinv(J, lambda_) # inverse jacobian [6x3]
             dq  = np.dot(J_damped_inv, e)
             q   = q + delta*dq
                        
