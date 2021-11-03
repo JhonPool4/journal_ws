@@ -65,7 +65,76 @@ def step_reference_generator(q0, a, t_step, t):
         ddq = 0         # [rad/s^2]            
     return q, dq, ddq
 
+def circular_trayectory_generator(t):
+    """
+    Generate points of a circular trayectory.
 
+    Inputs:
+    -------
+        -   t   : time [s]
+
+    Outpus:
+    -------
+        -   x_circ_tray     : "x" position point of circular trayectory at time "t"
+        -   y_circ_tray     : "y" position point of circular trayectory at time "t"
+        -   dx_circ_tray    : "x" velocity point of circular trayectory at time "t"
+        -   dy_circ_tray    : "y" velocity point of circular trayectory at time "t"
+        -   ddx_circ_tray   : "x" acceleration point of circular trayectory at time "t"
+        -   ddy_circ_tray   : "y" acceleration point of circular trayectory at time "t"        
+    """
+    # Pacient position
+    x_paciente = +0.500     # m
+    y_paciente = -0.275     # m
+
+    # length of patient arm
+    l       =   0.550       # m    
+
+    # Safe parameters defined by therapist 
+    r_max   = 0.70  # m     # No se modifica
+    r_min   = 0.30  # m     # No se mofica
+    y_max   = y_paciente + 0.80*l                   #   [m]
+    y_min   = y_paciente + 0.20*l                   #   [m]
+    r_circ  = 0.05#1                                   #   [m] 
+    r_z     = 0.02
+
+    # Parameters of circular trayetory     
+    f           = 0.1                       # frecuency     [Hz]
+    w           = 2*np.pi*f                 # angular velocity [rad/s]
+
+    x0_tray = (r_min + 0.5*(r_max - r_min))
+    y0_tray = (y_min + 0.5*(y_max - y_min))
+    
+    #phi = atan2(-1, 0)/ (2*pi) = -2.5
+    phi = 0#-2.5
+    
+    # position points
+    x_circ_tray  = x0_tray + r_circ*np.cos(w*(t+phi))
+    y_circ_tray  = y0_tray + r_circ*np.sin(w*(t+phi))
+    z_circ_tray  = r_z*np.sin(w*t)
+
+    # velocity points
+    dx_circ_tray = r_circ*( (-w)*np.sin(w*(t+phi)) )
+    dy_circ_tray = r_circ*( (+w)*np.cos(w*(t+phi)) )
+    dz_circ_tray = r_z*w*np.cos(w*t)
+
+    # acceleration points
+    ddx_circ_tray = r_circ*( (-w*w)*np.cos(w*(t+phi)) )
+    ddy_circ_tray = r_circ*( (-w*w)*np.sin(w*(t+phi)) )    
+    ddz_circ_tray = r_z*(-w*w)*np.sin(w*t)
+
+    # jerk points
+    dddx_circ_tray = r_circ*( (+w*w*w)*np.sin(w*(t+phi)) )
+    dddy_circ_tray = r_circ*( (-w*w*w)*np.cos(w*(t+phi)) )
+    dddz_circ_tray = r_z*(-w*w*w)*np.cos(w*t)
+
+    # vectors
+    pos   = [x_circ_tray, y_circ_tray, z_circ_tray]
+    vel   = [dx_circ_tray, dy_circ_tray, dz_circ_tray]
+    accel = [ddx_circ_tray, ddy_circ_tray, ddz_circ_tray]
+    jerk  = [dddx_circ_tray, dddy_circ_tray, dddz_circ_tray] 
+
+    return pos, vel, accel, jerk
+    
 def tl(array):
     """
     @info: add element to list
