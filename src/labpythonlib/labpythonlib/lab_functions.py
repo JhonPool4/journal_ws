@@ -134,6 +134,29 @@ def circular_trayectory_generator(t):
     jerk  = [dddx_circ_tray, dddy_circ_tray, dddz_circ_tray] 
 
     return pos, vel, accel, jerk
+
+def reference_trajectory(x_des, x_ref0, dx_ref0, dt):
+    """
+    Info: Generates a reference trajectory based on a desired trajectory.
+
+    Inputs: 
+    ------
+        - x_des:  desired trajectory
+        - x_ref0: initial conditions of x_ref
+        - dt:     sampling time 
+    """
+    psi = 1 # damping factor
+    wn  = 4 # natural frecuency
+
+    k0 = wn*wn
+    k1 = 2*psi*wn
+    # compute ddx_ref
+    ddx_ref = np.multiply(x_des,k0) -  np.multiply(dx_ref0,k1) - np.multiply(x_ref0,k0)
+    # double integration 
+    dx_ref = dx_ref0 + dt*ddx_ref
+    x_ref  = x_ref0  + dt*dx_ref
+
+    return x_ref, dx_ref, ddx_ref
     
 def tl(array):
     """
