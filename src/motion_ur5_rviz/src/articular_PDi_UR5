@@ -12,6 +12,7 @@
 	- system is stable with disturbance 0.95*b and try to reduce tracking error (regular)
 	- system is stable with disturbance 0.90*M and reduce tracking error (fast)
 	- system is stable with disturbance 0.10*M and reduce tracking error
+	- for high disturbances I recommend to use gamma >=0.9
 	Updates:
 	-------
 	- new library to compute dynamic model (pinocchio)
