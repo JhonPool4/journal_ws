@@ -392,7 +392,7 @@ def damped_pinv(M, ntask=None, lambda_=0.0000001):
     -------
         - M_damped_inv: damped psedu-inverse of M            
     """
-    ntask = M.shape[0]
+    #ntask = M.shape[0]
     M_damped_inv =  np.dot(M.T, np.linalg.inv(np.dot(M, M.T) + lambda_*np.eye(ntask)))
     return M_damped_inv
 
