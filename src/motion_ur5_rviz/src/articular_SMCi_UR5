@@ -8,25 +8,17 @@
 """
 	Notes:
 	-----
-	- Position error is more stable than jerk error
-	- Jerk error show several peaks
-	- A filter should be used to smooth the jerk error signal.
-	- The optimization equations cause the control gains to stabilize at 0,
-	  for control gains with initial value greather than 1. (Experimental observation)
-	- For this reason, the simulation use 0.5 as initial control gain.
-	- The close loop system is unstable for values of gamma lower than 0.99 (Experimental observation)
-
-	To Do:
-	------
-	- Plot P1 and P2 to confirm the relation of 1:100  
-	
+	- tracking error close to 0
+	- system is stable with disturbance 0.95*b and try to reduce tracking error (regular)
+	- system is stable with disturbance 0.90*M and reduce tracking error (fast)
+	- system is stable with disturbance 0.50*M and reduce tracking error
+	- system is unstable with disturbance 0.40*M
+	- for high disturbances I recommend to use gamma >=0.9
 	Updates:
 	-------
-	- Reference model and trajectory
-	- New formulation of sliding variable
-	- New formulation of control law
-	- New formulation od dP1_q (dP1 / dq)
-	- New formulation of dP2_q (dP2 / dq)
+	- new library to compute dynamic model (pinocchio)
+	- new represention of orientation (axis/angle)
+	- 
 """
 # ============================================================
 
