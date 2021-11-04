@@ -8,11 +8,14 @@
 """
 	Notes:
 	-----
-
+	- tracking error close to 0
+	- system is stable with disturbance 0.95*b and try to reduce tracking error (regular)
+	- system is stable with disturbance 0.90*M and reduce tracking error (fast)
+	- system is stable with disturbance 0.10*M and reduce tracking error
 	Updates:
 	-------
-	- new library to compute dynamic model
-	- new represention of orientation
+	- new library to compute dynamic model (pinocchio)
+	- new represention of orientation (axis/angle)
 	- 
 """
 # ============================================================
@@ -54,8 +57,8 @@ rospy.init_node("PDi_controller_ur5")
 # Public in topic /joint_states	to send joint data		
 pub = rospy.Publisher('joint_states', JointState, queue_size=1000)
 # Loop rate (in Hz)
-rate 	= rospy.Rate(1000)		# 1000 [Hz]
-dt 		= 1e-3					# 1  [ms]
+rate 	= rospy.Rate(100)		# 1000 [Hz]
+dt 		= 10e-3					# 1  [ms]
 # object(message) type JointState
 jstate = JointState()
 
@@ -84,6 +87,11 @@ q_med =   copy(q0)
 dq_med =  np.zeros(6) 
 ddq_med = np.zeros(6) 
 ddq_med = np.zeros(6)
+# error trajectory: position, velocity and acceleration
+q_e = np.zeros(6)
+dq_e =  np.zeros(6) 
+ddq_e = np.zeros(6) 
+ddq_e = np.zeros(6)
 
 # ===========================
 #   UR5 robot configuration
@@ -145,11 +153,11 @@ dddp_e = np.zeros(6)
 # ================================
 # 			PD controller
 # ================================
-alpha = 50*dt # 10 50 80
-gamma = 0.8
-beta  = 0.2
-KP    = 5*np.array([1, 1, 1, 1, 1, 1])
-KD    = 2*np.sqrt(KP)
+alpha = 0.01 # 10 50 80
+gamma = 0.9
+beta  = 0.1
+KP    = np.array([9, 9, 9, 9, 9, 9])
+KD    = np.array([6, 6, 6, 6, 6, 6])
 dJ_KP = np.zeros(6)
 dJ_KD = np.zeros(6)
 dKP = np.zeros(6)
@@ -170,8 +178,6 @@ fn = "articular"+"_kp_"+str(KP[0])+"_alpha_"+str(alpha)+"_beta_"+str(beta)+"_gam
 # save file .csv
 path = os.path.join(folder, fn)
 df.to_csv(path, index=False)
-
-
 
 """
 x = np.array([0.5, 0.0, 0.0])
@@ -206,15 +212,16 @@ while not rospy.is_shutdown():
 	ddq_ref = np.dot(J_pinv, ddp_ref - np.dot(dJ, dq_ref))
 	
 	# Error calculation
-	e 	=  q_ref - q_med
-	de 	=  dq_ref - dq_med
-	dde =  ddq_ref - ddq_med
+	q_e 	=  q_ref - q_med
+	dq_e 	=  dq_ref - dq_med
+	ddq_e =  ddq_ref - ddq_med
 
 	# Computes inertia matrix
-	M  = ur5_robot.get_M()
+	M  = 0.1*ur5_robot.get_M()
 	b = ur5_robot.get_b()
+	#b = u - M.dot(ddq_med)
 	# SMC articular + Feedback linearization
-	u = M.dot(ddq_ref +  np.multiply(KP, e) + np.multiply(KD, de)) + b
+	u = M.dot(ddq_ref +  np.multiply(KP, q_e) + np.multiply(KD, dq_e)) + b
 	
 	# Send control signal
 	ur5_robot.send_control_command(u)
@@ -230,13 +237,67 @@ while not rospy.is_shutdown():
 	jstate.velocity 	= dq_med
 	pub.publish(jstate)
 
-
 	# Ball marker
 	bmarker_des.xyz(p_ref[0:3])	# Green
 	bmarker_act.xyz(p_med[0:3])	# Yellow
+
+	# =========
+	# 	error 
+	# =========
+	# cartesian error
+	p_e[0:3] = p_ref[0:3] - p_des[0:3] 
+
+	# ================
+	# 	optimization 
+	# ================
+	# Derivative of Kp and Kd
+	dKP = -(alpha/dt) * (dJ_KP)
+	dKD = -(alpha/dt) * (dJ_KD)
+
+	# special parameters
+	P1 = q_e + KP + KD#+np.multiply(KP, q_e) #+ np.multiply(KD, dq_e)
+	P2 = -np.multiply(dKP, q_e)   - np.multiply(KP, dq_e) \
+		 -np.multiply(dKD, dq_e) - np.multiply(KD, ddq_e)
 	
+	#cost function
+	c = gamma*0.5*np.dot(P1.T,P1) + beta*0.5*np.dot(P2.T,P2) 	# [1x1]
+
+	# Gradient descent
+	dP1_q = -1							# [6x1]
+	dP2_q = +copy(dKP) 					# [6x1]	
+
+	# partial derivative of J (cost) with respecto to q(output)
+	dJ_q  = gamma*np.multiply(P1, dP1_q) + beta*np.multiply(P2, dP2_q)	# [6x1]
+	
+	# partial derivative of q (output) with respect to u (control)
+	#nonzero = (u!=up) 	# to avoid problems when du=0
+	du = (u-up)#*nonzero
+	dq_du = np.sign(np.multiply(dq_med, du))
+	
+	# partial derivative of u (control) with respect to k (control gain)
+	du_KP = np.dot(M, q_e)				# [6x1]
+	du_KD = np.dot(M, dq_e)   			# [6x1]
+
+	# gradient with respecto to each control gain
+	dJ_KP = np.multiply(np.multiply(dJ_q, dq_du), du_KP) 	# [6x1]
+	dJ_KD = np.multiply(np.multiply(dJ_q, dq_du), du_KD) 	# [6x1]	
+
+	# New value of KP and KD
+	crit_p = (1000)*np.sqrt(np.sum(np.power(p_e[0:3],2))) 	 # [mm]
+	crit_a = (180/np.pi)*np.sqrt(np.sum(np.power(q_e[0:6],2))) # [°]
+		
+	# Upgrade control gains
+	KP = KP - alpha*dJ_KP 	#[6x1]  
+	KD = KD - alpha*dJ_KD 	#[6x1]	
+
 	# Print
 	print("t: ", np.round(t,2))
+	print("du: ", dq_du)
+	print("KP: ", KP)
+	print("KD: ", KD) 
+	print("c:  ", c)
+	#print("crit_p: ", crit_p)
+	#print("crit_a: ", crit_a)
 	print("\n")
 
 	# Append data
