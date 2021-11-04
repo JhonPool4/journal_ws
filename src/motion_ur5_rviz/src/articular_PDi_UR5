@@ -53,13 +53,13 @@ df = pd.DataFrame(columns=column_names,dtype=object)
 # ===============================
 # 		Configuration of node
 # ===============================
-# Create a nodo: SMC_controller
+# Create a nodo: PD_controller
 rospy.init_node("PDi_controller_ur5")
 # Public in topic /joint_states	to send joint data		
 pub = rospy.Publisher('joint_states', JointState, queue_size=1000)
 # Loop rate (in Hz)
-rate 	= rospy.Rate(100)		# 1000 [Hz]
-dt 		= 10e-3					# 1  [ms]
+rate 	= rospy.Rate(100)		# 100 [Hz]
+dt 		= 10e-3					# 10  [ms]
 # object(message) type JointState
 jstate = JointState()
 
@@ -195,17 +195,14 @@ while not rospy.is_shutdown():
 	
 	# reference values (cartesian space)
 	p_ref[0:3], dp_ref[0:3], ddp_ref[0:3] = reference_trajectory(p_des[0:3], p_ref[0:3], dp_ref[0:3], dt)
-	#print("p_des: ", p_des[0:3])
-	#print("p_ref: ", p_ref[0:3])
 	
 	# Inverse kinematics
 	q_ref = ur5_robot.inverse_kinematics_pose(p_ref[0:3], R_des, q_ref)	# It starts with q_ref=copy(q0)
-	#print("q: ", q_ref)
+	
 	# jacobian: position xyz [6x6]
 	J = ur5_robot.geometric_jacobian(q_ref) 
 	# jacobian: dampend pseudo-inverse [6x6] 
 	J_pinv = damped_pinv(J)
-	#print("J dim: ", J_pinv.shape)
 	# jacobian: time derivative [6x6]
 	dJ = ur5_robot.geometric_jacobian_time_derivative(q_ref, dq_ref)
 
@@ -218,7 +215,7 @@ while not rospy.is_shutdown():
 	ddq_e =  ddq_ref - ddq_med
 
 	# Computes inertia matrix
-	M  = 0.1*ur5_robot.get_M()
+	M  = 0.5*ur5_robot.get_M()
 	b = ur5_robot.get_b()
 	#b = u - M.dot(ddq_med)
 	# SMC articular + Feedback linearization
@@ -310,6 +307,7 @@ while not rospy.is_shutdown():
 
 	# Update
 	t = t + dt
+	up = copy(u)
 	
 	if t>=(t_reach): # 60 sec
 		print("Reached maximum of steps")
