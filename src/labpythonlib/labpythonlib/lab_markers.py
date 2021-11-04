@@ -42,7 +42,7 @@ class BallMarker(object):
         dictionary (e.g. BLUE, RED, etc). Alpha sets the transparency and scale
         scales the size of the ball
         """
-        reference_frame = rospy.get_param('reference_frame','base') # important 
+        reference_frame = rospy.get_param('reference_frame','base_link') # important 
         self.marker_pub = rospy.Publisher("visualization_marker", Marker,
                                           queue_size=10)
         self.marker = Marker()
