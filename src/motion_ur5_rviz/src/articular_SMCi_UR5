@@ -8,17 +8,19 @@
 """
 	Notes:
 	-----
+	- option 1: orientation will be represented with RPY and its derivatives (just to show des and measured)
+	- option 2: just show orientation error using axis/angle representation.
 	- tracking error close to 0
-	- system is stable with disturbance 0.95*b and try to reduce tracking error (regular)
 	- system is stable with disturbance 0.90*M and reduce tracking error (fast)
-	- system is stable with disturbance 0.50*M and reduce tracking error
-	- system is unstable with disturbance 0.40*M
+	- system is stable with disturbance 0.50*M and reduce tracking error (regular)
+	- system is stable with disturbance 0.10*M and reduce tracking error (slow)
 	- for high disturbances I recommend to use gamma >=0.9
 	Updates:
 	-------
+	- new formulation of dP2_J (working)
 	- new library to compute dynamic model (pinocchio)
 	- new represention of orientation (axis/angle)
-	- 
+
 """
 # ============================================================
 
@@ -35,17 +37,46 @@ from labpythonlib.lab_markers import *
 # =============
 # 	Save data
 # =============
-origin 	= '../data/PDi'
-file_name 	= 'circular_traj'
+origin_data   = '../data'
+origin_images = '../document/images'
+trajectory_type 	= './SMCi/circular_traj'
 pwd = os.path.dirname(os.path.realpath(__file__))
-folder = os.path.join(pwd, origin, file_name)
+folder_data = os.path.join(pwd, origin_data, trajectory_type)
+folder_images = os.path.join(pwd, origin_images, trajectory_type)
 
-# Creates folder if it does not exist
-if not os.path.exists(folder):
-	os.makedirs(folder)
+# Creates folder_data if it does not exist
+if not os.path.exists(folder_data):
+	os.makedirs(folder_data)
+if not os.path.exists(folder_images):
+	os.makedirs(folder_images)
 
 column_names = [
-	't'
+	't',
+
+	'x_med', 'y_med', 'z_med', 'wx', 'wy', 'wz',
+	'dx_med', 'dy_med', 'dz_med', 'dwx', 'dwy', 'dwz',	
+	'ddx_med', 'ddy_med', 'ddz_med', 'ddw', 'ddex', 'ddey', 'ddez',
+	'dddx_med', 'dddy_med', 'dddz_med', 'dddwx_med', 'dddwy_med', 'dddwz_med',
+
+	'x_ref', 'y_ref', 'z_ref', 'wx', 'wy', 'wz',
+	'dx_ref', 'dy_ref', 'dz_ref', 'dwx', 'dwy', 'dwz',	
+	'ddx_ref', 'ddy_ref', 'ddz_ref', 'ddw', 'ddex', 'ddey', 'ddez',
+	'dddx_ref', 'dddy_ref', 'dddz_ref', 'dddwx_ref', 'dddwy_ref', 'dddwz_ref',
+	
+	'q1_med', 'q2_med', 'q3_med', 'q4_med', 'q5_med', 'q6_med',
+	'dq1_med', 'dq2_med', 'dq3_med', 'dq4_med', 'dq5_med', 'dq6_med',
+	'ddq1_med', 'ddq2_med', 'ddq3_med', 'ddq4_med', 'ddq5_med', 'ddq6_med',
+
+	'q1_ref', 'q2_ref', 'q3_ref', 'q4_ref', 'q5_ref', 'q6_ref',
+	'dq1_ref', 'dq2_ref', 'dq3_ref', 'dq4_ref', 'dq5_ref', 'dq6_ref',
+	'ddq1_ref', 'ddq2_ref', 'ddq3_ref', 'ddq4_ref', 'ddq5_ref', 'ddq6_ref',
+
+	'L1', 'L2', 'L3', 'L4', 'L5', 'L6',
+	'K1', 'K2', 'K3', 'K4', 'K5', 'K6',
+
+	'u1', 'u2', 'u3', 'u4', 'u5', 'u6',
+
+	'J1', 'J2', 'J3', 'J4', 'J5', 'J6'
 	]
 
 df = pd.DataFrame(columns=column_names,dtype=object)
@@ -153,10 +184,10 @@ dddp_e = np.zeros(6)
 # ================================
 # 			SMC controller
 # ================================
-alpha = 1e-2*np.array([10, 10]) # 10 50 80
+alpha = 1e-3*np.array([10, 10]) # 10 50 80
 gamma = 0.9
 beta  = 0.1
-Lambda = 10*np.array([1, 1, 1, 1, 1, 1])
+Lambda = 5*np.array([1, 1, 1, 1, 1, 1])
 K 	   = 1*np.array([1, 1, 1, 1, 1, 1])
 
 dJ_Lambda = np.zeros(6)
@@ -174,13 +205,13 @@ up = np.zeros(6)
 # 		Dynamic simulation
 # ================================
 t = 0.0
-t_reach = 20 # 1 min
+t_reach = 50 # 1 min
 
 # Filename
-fn = "articular_"+"lambda_"+str(Lambda[0])+"_alpha_"+str(alpha)+"_beta_"+str(beta)+"_gamma_"+str(gamma)+"_t_"+str(t_reach)+".csv"
+fn = "articular_"+"lambda_"+str(Lambda[0])+"_k_"+str(K[0])+"_alpha_"+str(alpha)+"_beta_"+str(beta)+"_gamma_"+str(gamma)+"_t_"+str(t_reach)+".csv"
 
 # save file .csv
-path = os.path.join(folder, fn)
+path = os.path.join(folder_data, fn)
 df.to_csv(path, index=False)
 
 while not rospy.is_shutdown():
@@ -209,7 +240,7 @@ while not rospy.is_shutdown():
 	ddq_e =  ddq_ref - ddq_med
 
 	# Computes inertia matrix
-	M  = 1.0*ur5_robot.get_M()
+	M  = 0.1*ur5_robot.get_M()
 	b = 1.0*ur5_robot.get_b()
 
 	# s and ds
@@ -262,7 +293,7 @@ while not rospy.is_shutdown():
 		 -np.multiply(np.multiply(K, p1_tanh2), ds)
 	
 	# Cost function
-	c = gamma*0.5*np.multiply(P1,P1) + beta*0.5*np.multiply(P2,P2) 	# [6x1]
+	c = gamma*0.5*np.dot(P1.T,P1) + beta*0.5*np.dot(P2.T,P2) 	# [6x1]
 	
 	# Gradient descent
 	dP1_q = -np.multiply(Lambda, np.ones(6)+np.multiply(K, p1_tanh2)) 	# [6x1]
@@ -295,14 +326,23 @@ while not rospy.is_shutdown():
 	print("t: ", np.round(t,2))
 	print("Lambda: ", Lambda)
 	print("K: ", K) 
-	#print("c:  ", c)
+	print("c:  ", c)
 	#print("crit_p: ", crit_p)
 	#print("crit_a: ", crit_a)
 
 	print("\n")
 
 	# Append data
-	row = tl(np.array([t]))
+	row = 	tl(np.array([t])) +\
+			tl(p_med)+tl(dp_med)+tl(ddp_med) +\
+			tl(p_ref)+tl(dp_ref)+tl(ddp_ref) +\
+			tl(q_med)+tl(dq_med)+tl(ddq_med) +\
+			tl(q_ref)+tl(dq_ref)+tl(ddq_ref) +\
+			tl(Lambda) +\
+			tl(K) +\
+			tl(u)  +\
+			tl(np.array([c]))
+
 	row = tl(np.expand_dims(np.array(row), axis = 1))
 	# Fix for redimensionality
 	df_row = pd.DataFrame.from_dict(dict(zip(column_names, row)))
