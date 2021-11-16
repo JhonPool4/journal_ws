@@ -44,7 +44,21 @@ if not os.path.exists(folder):
 	os.makedirs(folder)
 
 column_names = [
-	't'
+	't',
+	'q1_med', 'q2_med', 'q3_med', 'q4_med', 'q5_med', 'q6_med',
+	'dq1_med', 'dq2_med', 'dq3_med', 'dq4_med', 'dq5_med', 'dq6_med',
+	'ddq1_med', 'ddq2_med', 'ddq3_med', 'ddq4_med', 'ddq5_med', 'ddq6_med',
+
+	'q1_ref', 'q2_ref', 'q3_ref', 'q4_ref', 'q5_ref', 'q6_ref',
+	'dq1_ref', 'dq2_ref', 'dq3_ref', 'dq4_ref', 'dq5_ref', 'dq6_ref',
+	'ddq1_ref', 'ddq2_ref', 'ddq3_ref', 'ddq4_ref', 'ddq5_ref', 'ddq6_ref',
+
+	'KP1', 'KP2', 'KP3', 'KP4', 'KP5', 'KP6',
+	'KD1', 'KD2', 'KD3', 'KD4', 'KD5', 'KD6',
+
+	'u1', 'u2', 'u3', 'u4', 'u5', 'u6',
+
+	'J1', 'J2', 'J3', 'J4', 'J5', 'J6'
 	]
 
 df = pd.DataFrame(columns=column_names,dtype=object)
@@ -154,7 +168,7 @@ dddp_e = np.zeros(6)
 # ================================
 # 			PD controller
 # ================================
-alpha = 0.01 # 10 50 80
+alpha = 0.1 # 10 50 80
 gamma = 0.9
 beta  = 0.1
 KP    = np.array([9, 9, 9, 9, 9, 9])
@@ -174,7 +188,7 @@ t = 0.0
 t_reach = 60 # secs
 
 # Filename
-fn = "articular"+"_kp_"+str(KP[0])+"_alpha_"+str(alpha)+"_beta_"+str(beta)+"_gamma_"+str(gamma)+"_t_"+str(t_reach)+".csv"
+fn = "articular"+"_kp_"+str(KP[0])+"_kd_"+str(KD[0])+"_alpha_"+str(alpha)+"_beta_"+str(beta)+"_gamma_"+str(gamma)+"_t_"+str(t_reach)+".csv"
 
 # save file .csv
 path = os.path.join(folder, fn)
@@ -215,7 +229,7 @@ while not rospy.is_shutdown():
 	ddq_e =  ddq_ref - ddq_med
 
 	# Computes inertia matrix
-	M  = 0.5*ur5_robot.get_M()
+	M  = 0.1*ur5_robot.get_M()
 	b = ur5_robot.get_b()
 	#b = u - M.dot(ddq_med)
 	# SMC articular + Feedback linearization
@@ -299,7 +313,14 @@ while not rospy.is_shutdown():
 	print("\n")
 
 	# Append data
-	row = tl(np.array([t]))
+	row = 	tl(np.array([t])) +\
+			tl(q_med)+tl(dq_med)+tl(ddq_med) +\
+			tl(q_ref)+tl(dq_ref)+tl(ddq_ref) +\
+			tl(KP) +\
+			tl(KD) +\
+			tl(u)  +\
+			tl(np.array([c]))
+
 	row = tl(np.expand_dims(np.array(row), axis = 1))
 	# Fix for redimensionality
 	df_row = pd.DataFrame.from_dict(dict(zip(column_names, row)))
