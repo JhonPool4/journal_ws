@@ -209,8 +209,8 @@ while not rospy.is_shutdown():
 	ddq_e =  ddq_ref - ddq_med
 
 	# Computes inertia matrix
-	M  = 0.5*ur5_robot.get_M()
-	b = ur5_robot.get_b()
+	M  = 1.0*ur5_robot.get_M()
+	b = 1.0*ur5_robot.get_b()
 
 	# s and ds
 	s  = dq_e + np.multiply(Lambda, q_e)
@@ -249,12 +249,13 @@ while not rospy.is_shutdown():
 	# ================
 	# derivative of Lambda and K
 	dLambda  = -(alpha[0]/dt) * (dJ_Lambda)
-	#ddLambda = (dLambda - dLambda_p)/dt # Better adaptation when ddLambda = 0
+	ddLambda = (dLambda - dLambda_p)/dt # Better adaptation when ddLambda = 0
 	dK 		 = -(alpha[1]/dt) * (dJ_K)
-	#dLambda_p = dLambda 
+	dLambda_p = dLambda 
 
 	# Special parameters
 	p1_tanh2 = np.ones(6) - np.multiply(np.tanh(s),np.tanh(s))
+	p1_2Ltanh = np.ones(6) - np.multiply(np.multiply(np.multiply(2, Lambda), np.tanh(s)), ds)
 	P1 = +s + np.multiply(K, np.tanh(s))
 	P2 = -np.multiply(ddLambda, q_e) - np.multiply(np.multiply(dLambda, dq_e), 2) \
 		 -np.multiply(Lambda, ddq_e) - np.multiply(dK, np.tanh(s)) \
@@ -266,10 +267,8 @@ while not rospy.is_shutdown():
 	# Gradient descent
 	dP1_q = -np.multiply(Lambda, np.ones(6)+np.multiply(K, p1_tanh2)) 	# [6x1]
 	dP2_q = +ddLambda + np.multiply(np.multiply(dK, Lambda), p1_tanh2) \
-			+np.multiply(np.multiply(np.multiply(K, np.multiply(Lambda, \
-			 np.multiply(np.tanh(s), p1_tanh2))), ds), 2) \
-			+np.multiply(np.multiply(K, p1_tanh2), dLambda)  # [6x1]
-
+			+np.multiply(np.multiply(K, p1_tanh2), p1_2Ltanh) 			# [6x1]
+	
 	# partial derivative of J (cost) with respecto to q(output)
 	dJ_q = gamma*np.multiply(P1, dP1_q) + beta*np.multiply(P2, dP2_q)	# [6x1]
 
