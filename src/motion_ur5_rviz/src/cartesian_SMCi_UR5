@@ -45,7 +45,7 @@ Simulation setup:
 	- tracking error close to 0
 	- system is stable with disturbance 0.90*M and reduce tracking error (fast)
 	- system is stable with disturbance 0.50*M and reduce tracking error (regular)
-	- system is stable with disturbance 0.10*M and reduce tracking error (slow)
+	- system is unstable with disturbance 0.10*M
 	- for high disturbances I recommend to use gamma >=0.9
 	Updates:
 	-------
@@ -86,16 +86,19 @@ if not os.path.exists(folder_images):
 column_names = [
 	't',
 
-	'x_med', 'y_med', 'z_med', 'wx', 'wy', 'wz',
-	'dx_med', 'dy_med', 'dz_med', 'dwx', 'dwy', 'dwz',	
-	'ddx_med', 'ddy_med', 'ddz_med', 'ddw', 'ddex', 'ddey', 'ddez',
-	'dddx_med', 'dddy_med', 'dddz_med', 'dddwx_med', 'dddwy_med', 'dddwz_med',
+	'x_med', 'y_med', 'z_med',
+	'dx_med', 'dy_med', 'dz_med',	
+	'ddx_med', 'ddy_med', 'ddz_med',
+	'dddx_med', 'dddy_med', 'dddz_med',
 
-	'x_ref', 'y_ref', 'z_ref', 'wx', 'wy', 'wz',
-	'dx_ref', 'dy_ref', 'dz_ref', 'dwx', 'dwy', 'dwz',	
-	'ddx_ref', 'ddy_ref', 'ddz_ref', 'ddw', 'ddex', 'ddey', 'ddez',
-	'dddx_ref', 'dddy_ref', 'dddz_ref', 'dddwx_ref', 'dddwy_ref', 'dddwz_ref',
-	
+	'x_ref', 'y_ref', 'z_ref',
+	'dx_ref', 'dy_ref', 'dz_ref',
+	'ddx_ref', 'ddy_ref', 'ddz_ref',
+	'dddx_ref', 'dddy_ref', 'dddz_ref',
+
+    'roll_med', 'pitch_med', 'yaw_med',
+	'roll_ref', 'pitch_ref', 'yaw_ref',
+
 	'q1_med', 'q2_med', 'q3_med', 'q4_med', 'q5_med', 'q6_med',
 	'dq1_med', 'dq2_med', 'dq3_med', 'dq4_med', 'dq5_med', 'dq6_med',
 	'ddq1_med', 'ddq2_med', 'ddq3_med', 'ddq4_med', 'ddq5_med', 'ddq6_med',
@@ -194,7 +197,7 @@ ddp0 = np.zeros(3)
 dw0 = np.zeros(3)
 ddp0, dw0 = ur5_robot.dtwist(q0, dq0, ddq0)
 
-dddp0 = np.zeros(6) # requires estimation tecnique
+dddp0 = np.zeros(3) # requires estimation tecnique
 
 # desired cartesian trajectory: position, velocity and acceleration
 p_des = np.zeros(3)
@@ -208,7 +211,7 @@ w0_des = np.zeros(3)
 ddp_des = np.zeros(3)
 dw0_des = np.zeros(3)
 
-dddp_des = np.zeros(6)
+dddp_des = np.zeros(3)
 
 # reference cartesian trajectory: position, velocity and acceleration
 p_ref = copy(p0)
@@ -222,7 +225,7 @@ w_ref = copy(w0)
 ddp_ref = copy(ddp0)
 dw_ref = copy(dw0)
 
-dddp_ref = np.zeros(6)
+dddp_ref = np.zeros(3)
 
 # measured cartesian trajectory: position, velocity and acceleration
 p_med = copy(p0)
@@ -235,7 +238,7 @@ w_med = copy(w0)
 ddp_med = copy(ddp0)
 dw_med = copy(dw0)
 
-dddp_med = np.zeros(6)
+dddp_med = np.zeros(3)
 
 # Cartesian error
 p_e    = np.zeros(6)
@@ -246,11 +249,12 @@ dddp_e = np.zeros(6)
 # ================================
 # 			SMC controller
 # ================================
-alpha = 0.01 # 10 50 80
+alpha = 0.001 # 10 50 80
 gamma = 0.9
 beta  = 0.1
-Lambda = 5*np.array([10, 10, 10, 1, 1, 1])
-K 	   = 1*np.array([10, 10, 10, 1, 1, 1])
+delta = 0.1
+Lambda = 5*np.array([1, 1, 1, 1, 1, 1])
+K 	   = 1*np.array([1, 1, 1, 1, 1, 1])
 
 dJ_Lambda = np.zeros(6)
 dJ_K 	  = np.zeros(6)
@@ -270,7 +274,7 @@ t = 0.0
 t_reach = 50 # 1 min
 
 # Filename
-fn = "cartesian_"+"lambda_"+str(Lambda[0])+"_k_"+str(K[0])+"_alpha_"+str(alpha)+"_beta_"+str(beta)+"_gamma_"+str(gamma)+"_t_"+str(t_reach)+".csv"
+fn = "cartesian_"+"L"+str(Lambda[0])+"_K_"+str(K[0])+"_alpha_"+str(alpha)+"_beta_"+str(beta)+"_gamma_"+str(gamma)+"_delta_"+str(delta)+"_t_"+str(t_reach)+".csv"
 
 # save file .csv
 path = os.path.join(folder_data, fn)
@@ -309,7 +313,7 @@ while not rospy.is_shutdown():
 
 	# Computes inertia matrix
 	M  = 1.0*ur5_robot.get_M()
-	M_p = damped_pinv(J.dot(np.linalg.inv(M).dot(J.T)))
+	M_p = delta*damped_pinv(J.dot(np.linalg.inv(M).dot(J.T)))
 	b = 1.0*ur5_robot.get_b()
 	b_p = J_inv.T.dot(b) - M_p.dot(dJ.dot(dq_med))
 
@@ -343,12 +347,6 @@ while not rospy.is_shutdown():
 	# Ball marker
 	bmarker_des.xyz(p_ref[0:3])	# Green
 	bmarker_act.xyz(p_med[0:3])	# Yellow
-	"""
-	# =========
-	# 	error 
-	# =========
-	# cartesian error
-	p_e[0:3] = p_ref[0:3] - p_des[0:3] 	
 
 	# ================
 	# 	optimization 
@@ -363,8 +361,8 @@ while not rospy.is_shutdown():
 	p1_tanh2 = np.ones(6) - np.multiply(np.tanh(s),np.tanh(s))
 	p1_2Ltanh = np.ones(6) - np.multiply(np.multiply(np.multiply(2, Lambda), np.tanh(s)), ds)
 	P1 = +s + np.multiply(K, np.tanh(s))
-	P2 = -np.multiply(ddLambda, q_e) - np.multiply(np.multiply(dLambda, dq_e), 2) \
-		 -np.multiply(Lambda, ddq_e) - np.multiply(dK, np.tanh(s)) \
+	P2 = -np.multiply(ddLambda, p_e) - np.multiply(np.multiply(dLambda, dp_e), 2) \
+		 -np.multiply(Lambda, ddp_e) - np.multiply(dK, np.tanh(s)) \
 		 -np.multiply(np.multiply(K, p1_tanh2), ds)
 	
 	# Cost function
@@ -380,23 +378,24 @@ while not rospy.is_shutdown():
 
 	# partial derivative of q (output) with respect to u (control)
 	#nonzero = (u!=up) 	# to avoid problems when du=0
+	dp_w_med = np.concatenate((dp_med, w_med), axis=0)
 	du = (u-up)#*nonzero
-	dq_du = np.sign(np.multiply(dq_med, du))
+	dq_du = np.sign(np.multiply(dp_w_med, du))
 
-	du_Lambda = np.dot(M, dq_e)
+	du_Lambda = np.dot(M, dp_e)
 	du_K 	  = np.dot(M, np.tanh(s)) # [6x1]
 
 	dJ_Lambda = np.multiply(dJ_q, du_Lambda)							# [6x1]
 	dJ_K 	  = np.multiply(dJ_q, du_K)
 
 	# New value of Lambda
-	crit_p = (1000)*np.sqrt(np.sum(np.power(p_e[0:3],2))) 	# [mm]
-	crit_a = (180/np.pi)*np.sqrt(np.sum(np.power(q_e[0:6],2))) 	# [degrees]
+	#crit_p = (1000)*np.sqrt(np.sum(np.power(p_e[0:3],2))) 	# [mm]
+	#crit_a = (180/np.pi)*np.sqrt(np.sum(np.power(q_e[0:6],2))) 	# [degrees]
 	
 	# Upgrade of control gains
 	Lambda = Lambda - alpha*dJ_Lambda 	# [6x1]
 	K  	= K - alpha*dJ_K 				# [6x1]
-	"""
+	
 
 	# Print
 	print("t: ", np.round(t,2))
@@ -407,11 +406,12 @@ while not rospy.is_shutdown():
 	#print("crit_a: ", crit_a)
 
 	print("\n")
-	"""
+	
 	# Append data
 	row = 	tl(np.array([t])) +\
-			tl(p_med)+tl(dp_med)+tl(ddp_med) +\
-			tl(p_ref)+tl(dp_ref)+tl(ddp_ref) +\
+			tl(p_med)+tl(dp_med)+tl(ddp_med)+tl(dddp_med) +\
+			tl(p_ref)+tl(dp_ref)+tl(ddp_ref)+tl(dddp_ref) +\
+			tl(rpy_med)+tl(rpy_ref) +\
 			tl(q_med)+tl(dq_med)+tl(ddq_med) +\
 			tl(q_ref)+tl(dq_ref)+tl(ddq_ref) +\
 			tl(Lambda) +\
@@ -423,7 +423,7 @@ while not rospy.is_shutdown():
 	# Fix for redimensionality
 	df_row = pd.DataFrame.from_dict(dict(zip(column_names, row)))
 	df.append(df_row, sort = False).to_csv(path, index=False, mode = 'a', header=False)
-	"""
+	
 	# Update
 	t = t + dt
 	up = copy(u)
