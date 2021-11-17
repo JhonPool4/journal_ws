@@ -6,9 +6,41 @@
 # 	Info	:	articular SMC controller with optimal adaptation 
 #				in terms of position and jerk error.
 """
+Simulation setup:
+-----------------
+	
+	Fixed parameters:
+	----------------
+	- Circular trajectory of radius 0.5 m in the XY plane. (just for now)
+	- Sinusoidal trajectory of amplitude 0.2 m in the Z axis. (just for nonw)
+	- Trayectories period of 10 seconds. (just for nonw)
+	- Control signals are sent to robot each 10 ms.
+	- We set ikine_pose_ur5 to just do 10 iteration and obtain pose error of 1e-7 (orientation with angle/axis representation)
+
+	Experiments 1:
+	--------------
+	- Evaluate robustness considering parametric uncertainties (0.5M 0.1M)
+	- Compare trajectory tracking error obtained with fixed gains and optimized gains.
+	- This experiments will demostrate the variation the improvement reducing trajectory tracking error (position and jerk). 
+	- The figure will contains four plots and its size will be half-page.
+	- Maybe another figure indicating variation of control gains.
+
+	Experiments 2:
+	--------------
+	- Evaluate robustness considering external forces (1N 3N 5N)
+
+	Experiments 3:
+	--------------
+	- Evaluate stability and performance considering different learning rates (0.1 0.5 0.8)
+	- 
+
+	Experiments 4:
+	--------------
+	- Evaluate stability and performance considering different learning rates and simulation time(50 and 500 secs)
+
 	Notes:
 	-----
-	- option 1: orientation will be represented with RPY and its derivatives (just to show des and measured)
+	- option 1: orientation will be represented with RPY and its derivatives (just to show orientation tracking)
 	- option 2: just show orientation error using axis/angle representation.
 	- tracking error close to 0
 	- system is stable with disturbance 0.90*M and reduce tracking error (fast)
@@ -17,6 +49,7 @@
 	- for high disturbances I recommend to use gamma >=0.9
 	Updates:
 	-------
+	- 
 	- new formulation of dP2_J (working)
 	- new library to compute dynamic model (pinocchio)
 	- new represention of orientation (axis/angle)
@@ -184,7 +217,7 @@ dddp_e = np.zeros(6)
 # ================================
 # 			SMC controller
 # ================================
-alpha = 1e-3*np.array([10, 10]) # 10 50 80
+alpha = 0.05 # 10 50 80
 gamma = 0.9
 beta  = 0.1
 Lambda = 5*np.array([1, 1, 1, 1, 1, 1])
@@ -240,7 +273,7 @@ while not rospy.is_shutdown():
 	ddq_e =  ddq_ref - ddq_med
 
 	# Computes inertia matrix
-	M  = 0.1*ur5_robot.get_M()
+	M  = 1.0*ur5_robot.get_M()
 	b = 1.0*ur5_robot.get_b()
 
 	# s and ds
@@ -279,9 +312,9 @@ while not rospy.is_shutdown():
 	# 	optimization 
 	# ================
 	# derivative of Lambda and K
-	dLambda  = -(alpha[0]/dt) * (dJ_Lambda)
+	dLambda  = -(alpha/dt) * (dJ_Lambda)
 	ddLambda = (dLambda - dLambda_p)/dt # Better adaptation when ddLambda = 0
-	dK 		 = -(alpha[1]/dt) * (dJ_K)
+	dK 		 = -(alpha/dt) * (dJ_K)
 	dLambda_p = dLambda 
 
 	# Special parameters
@@ -319,8 +352,8 @@ while not rospy.is_shutdown():
 	crit_a = (180/np.pi)*np.sqrt(np.sum(np.power(q_e[0:6],2))) 	# [degrees]
 	
 	# Upgrade of control gains
-	Lambda = Lambda - alpha[0]*dJ_Lambda 	# [6x1]
-	K  	= K - alpha[1]*dJ_K 				# [6x1]
+	Lambda = Lambda - alpha*dJ_Lambda 	# [6x1]
+	K  	= K - alpha*dJ_K 				# [6x1]
 
 	# Print
 	print("t: ", np.round(t,2))
