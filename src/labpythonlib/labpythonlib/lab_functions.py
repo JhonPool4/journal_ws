@@ -662,8 +662,8 @@ class Robot(object):
     def read_ee_orientation(self):
         return self.R
 
-    def read_ee_angular_velocity(self):        
-        return self.w
+    def read_ee_angular_velocity_acceleration(self):        
+        return self.w, self.dw
 
     def read_ee_linear_velocity(self):
         return self.v        
@@ -676,13 +676,6 @@ class Robot(object):
     
     def get_g(self):
         return self.g
-    # deprecated
-    def get_ee_orientation(self):
-        return self.R
-    # deprecated        
-    def get_ee_position(self):
-        return self.p
-
 
 
 
