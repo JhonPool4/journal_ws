@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+	<!-- Paratemers of urdf of ur5 robot-->
+	<arg name="limited" default="true" doc="If true, limits joint range [-PI, PI] on all joints." />
+	<arg name="transmission_hw_interface" default="hardware_interface/PositionJointInterface" />
+
+	<!-- Load urdf model-->
+	<param name="robot_description" command="$(find xacro)/xacro --inorder '$(find ur5_description)/urdf/ur5_joint_limited_robot.urdf.xacro' transmission_hw_interface:=$(arg transmission_hw_interface)" />
+
+	<!-- Call a service to execute PD controller-->
+	<node name="SMCi_controller_ur5" pkg="motion_ur5_rviz" type="cartesian_SMCi_UR5" output="screen" />
+
+	<!-- Publish robot state-->
+	<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+	<!-- Open Rviz with config--> 
+	<arg name="config_file" value="$(find ur5_description)/config/frontal_view_ur5.rviz"/>
+	<node name="rviz" pkg="rviz" type="rviz" respawn="false" output="screen" args="-d$(arg config_file)"/>
+</launch>
