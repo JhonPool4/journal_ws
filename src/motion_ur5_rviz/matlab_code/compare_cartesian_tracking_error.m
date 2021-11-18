@@ -121,13 +121,13 @@ file_name     = fullfile(image_path, 'cartesian_velocity_error');
 saveas(gcf,file_name,'epsc')  
 
 
-%% cartesian orientation: Euler angles
+%% cartesian orientation with Euler angles: tracking error
 clc, close all;
 
 figure(1), hold on, grid on, box on;
     set(gcf,'units','centimeters','position', [0 0 image_size_width image_size_height])
 
-name_list = ["$\mathrm{\phi_r}$", "$\mathrm{\phi_p}$","$\mathrm{\phi_y}$"];
+name_list = ["$\mathrm{\phi_{yaw}}$", "$\mathrm{\phi_{pitch}}$","$\mathrm{\phi_{roll}}$"];
 
 cnt_img = 3;
 space_size = 1;
@@ -137,11 +137,11 @@ cols  = img_size*cnt_img+space_size*(cnt_img-1);
 legend_flag = false;
 
 for i=1:3
-    plot_name = strcat(name_list(i),' ($\mathrm{\frac{mm}{s}}$)');
+    plot_name = strcat(name_list(i),' ($\mathrm{^{\circ}}$)');
     subplot_indexes = get_subplot_index(i, rows,  cols, img_size, space_size, legend_flag);
     subplot(rows, cols, subplot_indexes),
-    plot(time(t_start:t_step:t_end), rpy_med_1(:, i), 'linestyle', '-', 'linewidth', 2, 'color', color1), hold on, grid on, box on
-    plot(time(t_start:t_step:t_end), rpy_med_2(:, i), 'linestyle', '--','linewidth', 2, 'color', color2), hold on, grid on, box on
+    plot(time(t_start:t_step:t_end), rpy_e_1(:, i), 'linestyle', '-', 'linewidth', 2, 'color', color1), hold on, grid on, box on
+    plot(time(t_start:t_step:t_end), rpy_e_2(:,i), 'linestyle', '--','linewidth', 2, 'color', color2), hold on, grid on, box on
     xlabel('time (s)', 'interpreter', 'latex')
     ylabel(plot_name, 'interpreter', 'latex')
     xticks(time(t_start):t_dt:time(t_end))
