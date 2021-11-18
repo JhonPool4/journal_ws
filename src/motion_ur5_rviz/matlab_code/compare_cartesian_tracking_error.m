@@ -4,10 +4,12 @@
 clc, clear all, close all;
 
 pwd = '/home/jhon/catkin_ws/journal_ws/src/motion_ur5_rviz/';
-control_method = 'SMCi'; % change: (i) PDi or SMCi 
+control_method = 'PDi'; % change: (i) PDi or SMCi 
 trajectory_type  = '/circular_traj/'; % change to database
-file_name_1 = 'cartesian_L5_K_1_alpha_0.0_beta_0.1_gamma_0.9_delta_0.1_t_50.csv';
-file_name_2 = 'cartesian_L5_K_1_alpha_0.01_beta_0.1_gamma_0.9_delta_0.1_t_50.csv';
+file_name_1 = 'cartesian_KP_9_KD_6_alpha_0.0_beta_0.1_gamma_0.9_delta_0.1_t_50.csv';
+file_name_2 = 'cartesian_KP_9_KD_6_alpha_0.5_beta_0.1_gamma_0.9_delta_0.1_t_50.csv';
+%file_name_1 = 'cartesian_L5_K_1_alpha_0.0_beta_0.1_gamma_0.9_delta_0.1_t_50.csv';
+%file_name_2 = 'cartesian_L5_K_1_alpha_0.01_beta_0.1_gamma_0.9_delta_0.1_t_50.csv';
 file_path = fullfile(pwd, 'data/',control_method, trajectory_type);
 image_path = fullfile(pwd,'document/images/', control_method, trajectory_type);
 
@@ -127,7 +129,7 @@ clc, close all;
 figure(1), hold on, grid on, box on;
     set(gcf,'units','centimeters','position', [0 0 image_size_width image_size_height])
 
-name_list = ["$\mathrm{\phi_{yaw}}$", "$\mathrm{\phi_{pitch}}$","$\mathrm{\phi_{roll}}$"];
+name_list = ["$\mathrm{\phi_{roll}}$", "$\mathrm{\phi_{pitch}}$","$\mathrm{\phi_{roll}}$"];
 
 cnt_img = 3;
 space_size = 1;
