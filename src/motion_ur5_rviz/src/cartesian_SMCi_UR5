@@ -98,6 +98,7 @@ column_names = [
 
     'roll_med', 'pitch_med', 'yaw_med',
 	'roll_ref', 'pitch_ref', 'yaw_ref',
+	'roll_e', 'pitch_e', 'yaw_e',
 
 	'q1_med', 'q2_med', 'q3_med', 'q4_med', 'q5_med', 'q6_med',
 	'dq1_med', 'dq2_med', 'dq3_med', 'dq4_med', 'dq5_med', 'dq6_med',
@@ -249,7 +250,7 @@ dddp_e = np.zeros(6)
 # ================================
 # 			SMC controller
 # ================================
-alpha = 0.001 # 10 50 80
+alpha = 0.0 # 10 15 20
 gamma = 0.9
 beta  = 0.1
 delta = 0.1
@@ -330,12 +331,23 @@ while not rospy.is_shutdown():
 	ur5_robot.send_control_command(u)
 
 	# update states
+	
 	q_med, dq_med, ddq_med = ur5_robot.read_joint_position_velocity_acceleration()
 	p_med, dp_med, ddp_med = ur5_robot.read_cartesian_position_velocity_acceleration()
 	R_med = ur5_robot.read_ee_orientation()
 	w_med, dw_med = ur5_robot.read_ee_angular_velocity_acceleration()
 	# represent orientation with Euler angles
-	rpy_med = rot2rpy_unwrapping(R_med, rpy_med)
+	#rpy_med = rot2rpy_unwrapping(R_med, rpy_med)
+	#rpy_med = copy(p_e[3:6])
+	angle_med, axis_med = rot2axisangle(R_med)
+	axis_angle_med = np.zeros(3)
+	axis_angle_med = angle_med*axis_med
+
+	angle_ref, axis_ref = rot2axisangle(R_ref)
+	axis_angle_ref = np.zeros(3)
+	axis_angle_ref = angle_ref*axis_ref
+
+	axis_angle_e = axisangle_error(R_ref, R_med)
 
 	# Publish message
 	jstate.header.stamp = rospy.Time.now()
@@ -411,7 +423,7 @@ while not rospy.is_shutdown():
 	row = 	tl(np.array([t])) +\
 			tl(p_med)+tl(dp_med)+tl(ddp_med)+tl(dddp_med) +\
 			tl(p_ref)+tl(dp_ref)+tl(ddp_ref)+tl(dddp_ref) +\
-			tl(rpy_med)+tl(rpy_ref) +\
+			tl(axis_angle_med)+tl(axis_angle_ref)+tl(axis_angle_e) +\
 			tl(q_med)+tl(dq_med)+tl(ddq_med) +\
 			tl(q_ref)+tl(dq_ref)+tl(ddq_ref) +\
 			tl(Lambda) +\
@@ -430,6 +442,7 @@ while not rospy.is_shutdown():
 	
 	if t>=(t_reach): # 60 sec
 		print("Reached maximum of steps")
+		print("data created with name: ", fn)
 		break
 
 	# Wait for the next iteration
