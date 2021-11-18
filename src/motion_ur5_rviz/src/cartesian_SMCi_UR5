@@ -113,7 +113,7 @@ column_names = [
 
 	'u1', 'u2', 'u3', 'u4', 'u5', 'u6',
 
-	'J1', 'J2', 'J3', 'J4', 'J5', 'J6'
+	'J'
 	]
 
 df = pd.DataFrame(columns=column_names,dtype=object)
@@ -250,7 +250,7 @@ dddp_e = np.zeros(6)
 # ================================
 # 			SMC controller
 # ================================
-alpha = 0.0 # 10 15 20
+alpha = 0.01 # 10 15 20
 gamma = 0.9
 beta  = 0.1
 delta = 0.1
@@ -275,7 +275,7 @@ t = 0.0
 t_reach = 50 # 1 min
 
 # Filename
-fn = "cartesian_"+"L"+str(Lambda[0])+"_K_"+str(K[0])+"_alpha_"+str(alpha)+"_beta_"+str(beta)+"_gamma_"+str(gamma)+"_delta_"+str(delta)+"_t_"+str(t_reach)+".csv"
+fn = "cartesian"+"_L_"+str(Lambda[0])+"_K_"+str(K[0])+"_alpha_"+str(alpha)+"_beta_"+str(beta)+"_gamma_"+str(gamma)+"_delta_"+str(delta)+"_t_"+str(t_reach)+".csv"
 
 # save file .csv
 path = os.path.join(folder_data, fn)
@@ -411,12 +411,12 @@ while not rospy.is_shutdown():
 
 	# Print
 	print("t: ", np.round(t,2))
+	print("du: ", dq_du)
 	print("Lambda: ", Lambda)
 	print("K: ", K) 
 	#print("c:  ", c)
 	#print("crit_p: ", crit_p)
 	#print("crit_a: ", crit_a)
-
 	print("\n")
 	
 	# Append data
