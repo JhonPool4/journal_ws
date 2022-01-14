@@ -20,7 +20,6 @@
 	- Reference model and trajectory
 	- New formulation of dP2_q (dP2 / dq)
 """
-
 # ============================================================
 
 # ============================
@@ -341,5 +340,4 @@ while not rospy.is_shutdown():
 	rate.sleep()
 
 print('out because ctrl + c. Data saved.')
-
 

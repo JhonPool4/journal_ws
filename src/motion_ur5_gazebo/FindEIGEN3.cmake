@@ -1,9 +1,9 @@
 
+MESSAGE(STATUS "Finding EIGIEN3 . . .")
 # find EIGEN3
 FIND_PATH(EIGEN3_INCLUDE_DIR Eigen/Dense 
     HINTS
-    /usr/include/eigen3
-    /usr/include/eigen3/Eigen
+    $ENV{eigen3_include_dir}
     )
 
 # error message EIGEN3

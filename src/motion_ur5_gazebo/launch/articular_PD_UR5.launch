@@ -39,8 +39,10 @@
   output="screen" args="joint_state_controller
                         PD_controller"/>
 
-  <!-- Send pose -->
-  <node type="send_joints_pos_vel_from_circ_traj_gazebo" pkg="motion_ur5_gazebo" name="dummy_send_articular_circ_trajectory" output="screen"/>  
+  <!-- Send joint configuration -->
+  <node type="send_joint_configuration" pkg="motion_ur5_gazebo" name="send_circ_trajectory_points" output="screen"/>  
+ }<!--
+  <node type="save_data_trajectory" pkg="motion_ur5_gazebo" name="save_data_trajectory" output="screen"/>-->
 </launch>
 
 
