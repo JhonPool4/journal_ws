@@ -12,3 +12,6 @@ src/motion_ur5_gazebo/src/__pycache__/
 
 src/labpythonlib/dist/
 src/labpythonlib/labpythonlib.egg-info/
+
+/install
+/src/rbdl-orb
