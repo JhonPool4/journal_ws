@@ -262,8 +262,8 @@ gamma = rospy.get_param('/dummy_node/gamma') 		# @param hyperparameter for posit
 beta  = rospy.get_param('/dummy_node/beta') 		# @param hyperparameter for acceleration error reduction 
 delta = rospy.get_param('/dummy_node/uncertainty')  # @param disturbance porcentage [0 25 50 75 100]
 
-Lambda = np.array([5, 5, 5, 5, 5, 5]) # @param control parameter
-K 	   = np.array([5, 5, 5, 5, 5, 5]) # @param control parameter
+Lambda = np.array([3, 3, 3, 3, 3, 3]) # @param control parameter
+K 	   = np.array([1, 1, 1, 1, 1, 1]) # @param control parameter
 
 dJ_Lambda = np.zeros(6)
 dJ_K 	  = np.zeros(6)
@@ -279,11 +279,13 @@ Fp = np.zeros(6)
 # ================================
 # 		Dynamic simulation
 # ================================
-t = 0.0 				# @param simulation time
-t_reach = 50 			# @param maximum simulation time
+t = 0.0 				# @param current simulation time
+sim_time = rospy.get_param('/dummy_node/sim_time') 			 # @param maximum simulation time [s]
+max_pos_error = rospy.get_param('/dummy_node/max_pos_error') # @param maximum position error [mm]
+max_ori_error = rospy.get_param('/dummy_node/max_ori_error') # @param maximum orientation error [deg]
 
 # Filename
-fn = "cartesian"+"_L_"+str(Lambda[0])+"_K_"+str(K[0])+"_alpha_"+str(alpha)+"_beta_"+str(beta)+"_gamma_"+str(gamma)+"_delta_"+str(delta)+"_t_"+str(t_reach)+".csv"
+fn = "cartesian"+"_L_"+str(Lambda[0])+"_K_"+str(K[0])+"_alpha_"+str(alpha)+"_beta_"+str(beta)+"_gamma_"+str(gamma)+"_delta_"+str(delta)+"_t_"+str(sim_time)+".csv"
 
 # save file .csv
 path = os.path.join(folder_data, fn)
@@ -410,9 +412,9 @@ while not rospy.is_shutdown():
     dJ_K 	  = np.multiply(dJ_q, du_K)
 
     # New value of Lambda
-    convergence_position = 0.001*2*np.ones(3)
-    convergence_orientation = np.deg2rad(1)*np.ones(3)
-    convergence_pose = np.concatenate((convergence_position, convergence_orientation), axis=0) # [mm, rad]
+    convergence_position = 0.001*max_pos_error*np.ones(3)           # [m]
+    convergence_orientation = np.deg2rad(max_ori_error)*np.ones(3)  # [rad]
+    convergence_pose = np.concatenate((convergence_position, convergence_orientation), axis=0) # [m, rad]
     crit_p = 1*(abs(p_e)>=convergence_pose)
     #crit_a = (180/np.pi)*np.sqrt(np.sum(np.power(q_e[0:6],2))) 	# [degrees]
 
@@ -420,18 +422,19 @@ while not rospy.is_shutdown():
     Lambda = Lambda - alpha*crit_p*dJ_Lambda 	# [6x1]
     K  	= K - alpha*crit_p*dJ_K 				# [6x1]
 
-
     # Print
-    print("t: ", np.round(t,2))
-    print("crit_p: ", crit_p)
-    print("p_e", 1000*p_e[0:3])
-    print("o_e", np.rad2deg(p_e[3:6]))
-    #print("Lambda: ", Lambda)
-    #print("K: ", K) 
-    #print("c:  ", c)
-    #print("crit_p: ", crit_p)
-    #print("crit_a: ", crit_a)
-    print("\n")
+    #print(np.round(t/dt,1)%10)
+    if (np.round(t/dt,1)%10==0):
+        print("t: ", np.round(t,2))
+        print("crit_p: ", crit_p)
+        print("p_e", 1000*p_e[0:3])
+        print("o_e", np.rad2deg(p_e[3:6]))
+        print("Lambda: ", Lambda)
+        print("K: ", K) 
+        #print("c:  ", c)
+        #print("crit_p: ", crit_p)
+        #print("crit_a: ", crit_a)
+        print("\n")
 
     # Append data
     row = 	tl(np.array([t])) +\
@@ -454,7 +457,7 @@ while not rospy.is_shutdown():
     t = t + dt
     Fp = copy(F)
 
-    if t>=(t_reach): # 60 sec
+    if t>=(sim_time): # 60 sec
         print("Reached maximum of steps")
         print("data created with name: ", fn)
         break
