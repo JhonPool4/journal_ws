@@ -1,0 +1,45 @@
+<launch>
+    <arg name="uncertainty" default="0.0"/>
+    <arg name="alpha" default="0.0" />
+    <arg name="gamma" default="0.9" />
+    <arg name="beta" default="0.1"/>
+
+    <!-- Load estimated robot model-->
+    <param name="nominal_ur5_urdf" value="$(find ur5_description)/urdf/ur5_uncertainty_0.urdf"/>
+
+    <!-- Load real robot model-->
+    <group if="$(eval arg('uncertainty')==0)">
+        <param  name="robot_description" textfile="$(find ur5_description)/urdf/ur5_uncertainty_0.urdf"/>
+        <param  name="real_ur5_urdf" value="$(find ur5_description)/urdf/ur5_uncertainty_0.urdf"/>    
+    </group> 
+    <group if="$(eval arg('uncertainty')==25)">
+        <param  name="robot_description" textfile="$(find ur5_description)/urdf/ur5_uncertainty_25.urdf"/>
+        <param  name="real_ur5_urdf" value="$(find ur5_description)/urdf/ur5_uncertainty_25.urdf"/>       
+    </group> 
+    <group if="$(eval arg('uncertainty')==50)">
+        <param  name="robot_description" textfile="$(find ur5_description)/urdf/ur5_uncertainty_50.urdf"/>  
+        <param  name="real_ur5_urdf" value="$(find ur5_description)/urdf/ur5_uncertainty_50.urdf"/>     
+    </group> 
+    <group if="$(eval arg('uncertainty')==75)">
+        <param  name="robot_description" textfile="$(find ur5_description)/urdf/ur5_uncertainty_75.urdf"/>
+        <param  name="real_ur5_urdf" value="$(find ur5_description)/urdf/ur5_uncertainty_75.urdf"/>       
+    </group>         
+    <group if="$(eval arg('uncertainty')==100)">
+        <param  name="robot_description" textfile="$(find ur5_description)/urdf/ur5_uncertainty_100.urdf"/>
+        <param  name="real_ur5_urdf" value="$(find ur5_description)/urdf/ur5_uncertainty_100.urdf"/>       
+    </group>     
+
+
+    <node name="dummy_node" output="screen" type="new_cartesian_PDi_UR5" pkg="motion_ur5_rviz" >
+        <param name="uncertainty" value="$(arg uncertainty)"/>  
+        <param name="alpha" value="$(arg alpha)" />
+        <param name="gamma" value="$(arg gamma)" />
+        <param name="beta" value="$(arg beta)" />     
+    </node>
+
+    <!-- Publish robot state-->
+    <node   name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen" />
+    <!-- Open Rviz with config--> 
+    <arg name="config_file" value="$(find ur5_description)/config/frontal_view_ur5.rviz"/>
+    <node name="rviz" pkg="rviz" type="rviz" respawn="false" output="screen" args="-d$(arg config_file)"/>
+</launch>
