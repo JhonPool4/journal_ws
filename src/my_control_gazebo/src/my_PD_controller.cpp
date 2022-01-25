@@ -62,6 +62,8 @@ namespace effort_controllers_ns{
 			ros::Subscriber sub_velocity_command_;
 			// Publisher
 			ros::Publisher pub_commad_;
+			ros::Publisher pub_current_position_;
+			ros::Publisher pub_current_velocity_;
 			// Control gains
 			Vector_d_6x1 kp_;
 			Vector_d_6x1 kd_;
@@ -70,7 +72,11 @@ namespace effort_controllers_ns{
 			// Just to print
 			int counter_ = 0.0;
 			int p_rate_ = 100;
-
+			// start flag
+			std_msgs::Int64 f_start_;
+			// current joint states
+			my_control_gazebo::AngularPosition joint_position_;
+			my_control_gazebo::AngularVelocity joint_velocity_;
 		public:
 			bool init(hardware_interface::EffortJointInterface* hw, ros::NodeHandle &n)
 			{
@@ -116,7 +122,8 @@ namespace effort_controllers_ns{
 
 				// Publisher
 				pub_commad_ = n.advertise<std_msgs::Int64>("f_start", 1);
-
+				pub_current_position_ = n.advertise<my_control_gazebo::AngularPosition>("current_position", 1);
+				pub_current_velocity_ = n.advertise<my_control_gazebo::AngularVelocity>("current_velocity", 1);
 				return true;					
 			}
 
@@ -206,12 +213,6 @@ namespace effort_controllers_ns{
 
 			void update(const ros::Time& time, const ros::Duration& period)
 			{
-				// f_start = 1 indicates that control file load without problems
-				// Thus, node starts publishing desired trajectory
-				std_msgs::Int64 f_start;
-				f_start.data = 1;
-				pub_commad_.publish(f_start);
-
 				// useful vectors	
 				Vector_d_6x1 q; 	// current angular position
 				Vector_d_6x1 dq;	// current angular velocity
@@ -267,6 +268,30 @@ namespace effort_controllers_ns{
 					double effort_command = u[i];
 					joints_[i].setCommand(effort_command);
 				}				
+				// send current position
+				joint_position_.q1= q[0];
+				joint_position_.q2= q[1];
+				joint_position_.q3= q[2];
+				joint_position_.q4= q[3];
+				joint_position_.q5= q[4];
+				joint_position_.q6= q[5];
+				pub_current_position_.publish(joint_position_);
+				// send current velocity
+				joint_velocity_.dq1 = dq[0];
+				joint_velocity_.dq2 = dq[1];				
+				joint_velocity_.dq3 = dq[2];
+				joint_velocity_.dq4 = dq[3];
+				joint_velocity_.dq5 = dq[4];
+				joint_velocity_.dq6 = dq[5];
+				pub_current_velocity_.publish(joint_velocity_);
+
+				// f_start = 1 indicates that control file load without problems
+				// Thus, node starts publishing desired trajectory
+				if (p_error.norm()<=0.002)
+				{ 
+					f_start_.data = 1;
+				}
+				pub_commad_.publish(f_start_);
 
 				//print
 				counter_ += 1;
@@ -280,14 +305,15 @@ namespace effort_controllers_ns{
 						//std::cout<<"\nq_d: "<<p_error+q<<std::endl;
 						std::cout<<"\nq_e: "<<p_error<<std::endl;
 						std::cout<<"\ndq_e: "<<d_error<<std::endl;
-						std::cout<<"\np_term: "<<M*p_term <<std::endl;
-						std::cout<<"\nd_term: "<<M*d_term<<std::endl;
-						std::cout<<"\nb: "<<b<<std::endl;
-						std::cout<<"\nu: "<<u<<std::endl;
+						std::cout<<"\nnorm_e: "<<p_error.norm()<<std::endl;
+						std::cout<<"\nnorm_de: "<<d_error.norm()<<std::endl;
+						//std::cout<<"\np_term: "<<M*p_term <<std::endl;
+						//std::cout<<"\nd_term: "<<M*d_term<<std::endl;
+						//std::cout<<"\nb: "<<b<<std::endl;
+						//std::cout<<"\nu: "<<u<<std::endl;
 						
 					}
 				}
-
 
 
 			}

@@ -97,8 +97,6 @@ if __name__ == '__main__':
           t = t + 0.01
           # sleep
           rate.sleep()
-
-        
         else:
           # wait
           print("waiting start signal...")
