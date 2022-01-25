@@ -71,7 +71,7 @@ from labpythonlib.lab_markers import *
 # 	Save data
 # =============
 origin_data   = '../data'
-origin_images = '../document/images'
+origin_images = '../images'
 trajectory_type 	= './PDi/circular_traj'
 pwd = os.path.dirname(os.path.realpath(__file__))
 folder_data = os.path.join(pwd, origin_data, trajectory_type)
@@ -155,12 +155,12 @@ dddq_ref = np.zeros(6)
 q_med =   copy(q0)
 dq_med =  np.zeros(6) 
 ddq_med = np.zeros(6) 
-ddq_med = np.zeros(6)
+dddq_med = np.zeros(6)
 # error trajectory: position, velocity and acceleration
 q_e = np.zeros(6)
 dq_e =  np.zeros(6) 
 ddq_e = np.zeros(6) 
-ddq_e = np.zeros(6)
+dddq_e = np.zeros(6)
 
 # ===========================
 #   UR5 robot configuration
@@ -169,7 +169,7 @@ ddq_e = np.zeros(6)
 jnames = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint','wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
 # path of labs_ur5.urdf
 urdf_path = os.path.join(pwd,'../../ur5_description/urdf/ur5_joint_limited_robot.urdf')
-# the class robot load labs_ur5.urdf
+# the class robot loads labs_ur5.urdf
 ur5_robot = Robot(q0, dq0, dt, urdf_path)
 # number of degress of freedom
 ndof = ur5_robot.ndof
@@ -201,18 +201,18 @@ ddp0, dw0 = ur5_robot.dtwist(q0, dq0, ddq0)
 dddp0 = np.zeros(3) # requires estimation tecnique
 
 # desired cartesian trajectory: position, velocity and acceleration
-p_des = np.zeros(3)
+p_des = np.zeros(3) # will be modified in "while loop"
 rpy_des = np.zeros(3)
-R_des = np.array([[0, 0, 1],[0, 1, 0],[-1, 0, 0]])
+R_des = np.array([[0, 0, 1],[0, 1, 0],[-1, 0, 0]]) # enf-effefor with direction towards negativa z-axis 
 rpy_des = rot2rpy(R_des)
 
-dp_des = np.zeros(3)
+dp_des = np.zeros(3) # will be modified in "while loop"
 w0_des = np.zeros(3)
 
-ddp_des = np.zeros(3)
+ddp_des = np.zeros(3) # will be modified in "while loop"
 dw0_des = np.zeros(3)
 
-dddp_des = np.zeros(3)
+dddp_des = np.zeros(3) # will be modified in "while loop"
 
 # reference cartesian trajectory: position, velocity and acceleration
 p_ref = copy(p0)
@@ -226,7 +226,7 @@ w_ref = copy(w0)
 ddp_ref = copy(ddp0)
 dw_ref = copy(dw0)
 
-dddp_ref = np.zeros(3)
+dddp_ref = copy(dddp0)
 
 # measured cartesian trajectory: position, velocity and acceleration
 p_med = copy(p0)
@@ -247,23 +247,29 @@ dp_e   = np.zeros(6)
 ddp_e  = np.zeros(6)
 dddp_e = np.zeros(6)
 
+# temporal variables
+axis_angle_med = np.zeros(3)
+axis_angle_ref = np.zeros(3)
+
 # ================================
 # 			PD controller
 # ================================
-alpha = 0.8 # 10 15 20
-gamma = 0.9
-beta  = 0.1
-delta = 0.1
+alpha = 0.1 # 10 15 20  # @param learning rate
+gamma = 0.9 			# @param hyperparameter for position error reduction
+beta  = 0.1 			# @param hyperparameter for acceleration error reduction 
+delta = 90 				# @param disturbance porcentage: no disturbance (delta=0)
 
 KP    = np.array([9, 9, 9, 9, 9, 9])
-KD    = np.array([6, 6, 6, 6, 6, 6])
+KD    = 2*np.sqrt(KP)
 dJ_KP = np.zeros(6)
 dJ_KD = np.zeros(6)
 dKP = np.zeros(6)
 dKD = np.zeros(6)
 
-u  = np.zeros(6)
-up = np.zeros(6)
+F  = np.zeros(6)
+Fp = np.zeros(6)
+u  = np.zeros(6) 		# @param effort control
+
 # ================================
 # 		Dynamic simulation
 # ================================
@@ -289,7 +295,7 @@ while not rospy.is_shutdown():
     w_ref = angular_velocity_rpy(rpy_ref, drpy_ref)
     dw_ref = angular_acceleration_rpy(rpy_ref, drpy_ref, ddrpy_ref)
     # desired pose acceleration
-    ddp_w_ref = np.concatenate((ddp_ref,dw_ref), axis=0)
+    ddpw_ref = np.concatenate((ddp_ref,dw_ref), axis=0)
 
     # Cartesian error: position
     p_e[0:3]   =  p_ref - p_med # [3x3]
@@ -308,21 +314,21 @@ while not rospy.is_shutdown():
     # jacobian: time-derivative [6x6]
     dJ = ur5_robot.geometric_jacobian_time_derivative(q_med, dq_med)
 
-    # Computes inertia matrix
-    M  = 1.0*ur5_robot.get_M()
-    M_p = delta*damped_pinv(J.dot(np.linalg.inv(M).dot(J.T)))
-    b = 1.0*ur5_robot.get_b()
-    b_p = J_inv.T.dot(b) - M_p.dot(dJ.dot(dq_med))
+    # computes robot dynamics (Cartesian space)
+    M  = ur5_robot.get_M() 
+    M_p = (1-0.01*delta)*damped_pinv(J.dot(np.linalg.inv(M).dot(J.T))) # inertia matrix at Cartesian space
+
+    b = 1.0*ur5_robot.get_b() 
+    b_p = J_inv.T.dot(b) - M_p.dot(dJ.dot(dq_med)) # nonlinear effects vector at Joint space at Cartesian space
 
     # cartesian PD control + Feedback linearization
-    F = M_p.dot(ddp_w_ref +  np.multiply(KP, p_e) + np.multiply(KD, dp_e)) + b_p
+    F = M_p.dot(ddpw_ref + np.multiply(KP, p_e) + np.multiply(KD, dp_e)) + b_p
     u = J.T.dot(F) 
 
     # Send control signal
     ur5_robot.send_control_command(u)
 
     # update states
-
     q_med, dq_med, ddq_med = ur5_robot.read_joint_position_velocity_acceleration()
     p_med, dp_med, ddp_med = ur5_robot.read_cartesian_position_velocity_acceleration()
     R_med = ur5_robot.read_ee_orientation()
@@ -331,11 +337,9 @@ while not rospy.is_shutdown():
     #rpy_med = rot2rpy_unwrapping(R_med, rpy_med)
     #rpy_med = copy(p_e[3:6])
     angle_med, axis_med = rot2axisangle(R_med)
-    axis_angle_med = np.zeros(3)
     axis_angle_med = angle_med*axis_med
 
     angle_ref, axis_ref = rot2axisangle(R_ref)
-    axis_angle_ref = np.zeros(3)
     axis_angle_ref = angle_ref*axis_ref
 
     axis_angle_e = axisangle_error(R_ref, R_med)
@@ -361,27 +365,27 @@ while not rospy.is_shutdown():
     # special parameters
     P1 = np.multiply(KP,p_e) + np.multiply(KD, dp_e)
     P2 = -np.multiply(dKP, p_e)   - np.multiply(KP, dp_e) \
-            -np.multiply(dKD, dp_e) - np.multiply(KD, ddp_e)
+         -np.multiply(dKD, dp_e) - np.multiply(KD, ddp_e)
 
     #cost function
     c = gamma*0.5*np.dot(P1.T,P1) + beta*0.5*np.dot(P2.T,P2) 	# [1x1]
 
     # Gradient descent
     dP1_q = -copy(KP)					# [6x1]
-    dP2_q = +copy(dKP) 					# [6x1]	
+    dP2_q = copy(dKP) 					# [6x1]	
 
     # partial derivative of J (cost) with respecto to q(output)
     dJ_q  = gamma*np.multiply(P1, dP1_q) + beta*np.multiply(P2, dP2_q)	# [6x1]
 
     # partial derivative of q (output) with respect to u (control)
     #nonzero = (u!=up) 	# to avoid problems when du=0
-    dp_w_med = np.concatenate((dp_med, w_med), axis=0)
-    du = (u-up)#*nonzero
-    dq_du = np.sign(np.multiply(dp_w_med, du))
+    dpw_med = np.concatenate((dp_med, w_med), axis=0)
+    dF = (F-Fp)#*nonzero
+    dq_du = np.sign(np.multiply(dpw_med, dF))
 
     # partial derivative of u (control) with respect to k (control gain)
-    du_KP = np.dot(M, p_e)				# [6x1]
-    du_KD = np.dot(M, dp_e)   			# [6x1]
+    du_KP = np.dot(M_p, p_e)				# [6x1]
+    du_KD = np.dot(M_p, dp_e)   			# [6x1]
 
     # gradient with respecto to each control gain
     dJ_KP = np.multiply(dJ_q, du_KP) 	# [6x1]
@@ -420,7 +424,7 @@ while not rospy.is_shutdown():
 
     # Update
     t = t + dt
-    up = copy(u)
+    Fp = copy(F)
 
     if t>=(t_reach): # 60 sec
         print("Reached maximum of steps")
