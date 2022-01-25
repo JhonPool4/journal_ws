@@ -3,6 +3,9 @@
     <arg name="alpha" default="0.0" />
     <arg name="gamma" default="0.9" />
     <arg name="beta" default="0.1"/>
+    <arg name="sim_time" default="50" />
+    <arg name="max_pos_error" default="0.5" /> <!--info="milimeters"-->
+    <arg name="max_ori_error" default="0.5" /> <!--info="degrees"-->
 
     <!-- Load estimated robot model-->
     <param name="nominal_ur5_urdf" value="$(find ur5_description)/urdf/ur5_uncertainty_0.urdf"/>
@@ -35,6 +38,9 @@
         <param name="alpha" value="$(arg alpha)" />
         <param name="gamma" value="$(arg gamma)" />
         <param name="beta" value="$(arg beta)" />     
+        <param name="sim_time" value="$(arg sim_time)"/>
+        <param name="max_pos_error" value="$(arg max_pos_error)" />
+        <param name="max_ori_error" value="$(arg max_ori_error)" /> 
     </node>
 
     <!-- Publish robot state-->
