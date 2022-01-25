@@ -236,11 +236,13 @@ u  = np.zeros(6) 		# @param effort control
 # ================================
 # 		Dynamic simulation
 # ================================
-t = 0.0
-t_reach = 50 # 1 min
+t = 0.0 				# @param current simulation time
+sim_time = rospy.get_param('/dummy_node/sim_time') 			 # @param maximum simulation time [s]
+max_pos_error = rospy.get_param('/dummy_node/max_pos_error') # @param maximum position error [mm]
+max_ori_error = rospy.get_param('/dummy_node/max_ori_error') # @param maximum orientation error [deg]
 
 # Filename
-fn = "cartesian"+"_KP_"+str(KP[0])+"_KD_"+str(KD[0])+"_alpha_"+str(alpha)+"_beta_"+str(beta)+"_gamma_"+str(gamma)+"_delta_"+str(delta)+"_t_"+str(t_reach)+".csv"
+fn = "cartesian"+"_KP_"+str(KP[0])+"_KD_"+str(KD[0])+"_alpha_"+str(alpha)+"_beta_"+str(beta)+"_gamma_"+str(gamma)+"_delta_"+str(delta)+"_t_"+str(sim_time)+".csv"
 
 # save file .csv
 path = os.path.join(folder_data, fn)
@@ -265,11 +267,15 @@ while not rospy.is_shutdown():
     p_e[0:3]   =  p_ref - p_med # [3x3]
     dp_e[0:3]  =  dp_ref - dp_med
     ddp_e[0:3] =  ddp_ref - ddp_med
+	# samir: add the code to estimate jerk
+	# dddp_e[0:3] = estimate_jerk(...) # position    
 
     # Carteisan error: orientation
     p_e[3:6] 	= axisangle_error(R_ref, R_med)
     dp_e[3:6] 	= w_ref - w_med
     ddp_e[3:6]  = dw_ref - dw_med
+	# samir: add the code to estimate jerk
+	# dddp_ref[3:6] = estimate_jerk(...) # orientation    
 
     # jacobian: pose [6x6]
     J = nomi_robot.geometric_jacobian(q_med)  
@@ -352,19 +358,25 @@ while not rospy.is_shutdown():
     dJ_KP = np.multiply(dJ_q, du_KP) 	# [6x1]
     dJ_KD = np.multiply(dJ_q, du_KD) 	# [6x1]	    
 
+    # convergence condition
+    convergence_position = 0.001*max_pos_error*np.ones(3)           # [m]
+    convergence_orientation = np.deg2rad(max_ori_error)*np.ones(3)  # [rad]
+    convergence_pose = np.concatenate((convergence_position, convergence_orientation), axis=0) # [m, rad]
+    crit_p = 1*(abs(p_e)>=convergence_pose)
+
     # Upgrade control gains
-    KP = KP - alpha*dJ_KP 	#[6x1]  
-    KD = KD - alpha*dJ_KD 	#[6x1]	    
+    KP = KP - alpha*crit_p*dJ_KP 	#[6x1]  
+    KD = KD - alpha*crit_p*dJ_KD 	#[6x1]	    
 
     # Print
-    print("t: ", np.round(t,2))
-    print("du: ", dq_du)
-    print("KP: ", KP)
-    print("KD: ", KD) 
-    #print("c:  ", c)
-    #print("crit_p: ", crit_p)
-    #print("crit_a: ", crit_a)
-    print("\n")    
+    if (np.round(t/dt,1)%10==0):
+        print("t: ", np.round(t,2))
+        print("crit_p: ", crit_p)
+        print("p_e", 1000*p_e[0:3])
+        print("o_e", np.rad2deg(p_e[3:6]))
+        print("KP: ", KP)
+        print("KD: ", KD) 
+        print("\n")    
 
     # Append data
     row = 	tl(np.array([t])) +\
@@ -387,7 +399,7 @@ while not rospy.is_shutdown():
     t = t + dt
     Fp = copy(F)
 
-    if t>=(t_reach): # 60 sec
+    if t>=(sim_time): # 60 sec
         print("Reached maximum of steps")
         print("data created with name: ", fn)
         break
