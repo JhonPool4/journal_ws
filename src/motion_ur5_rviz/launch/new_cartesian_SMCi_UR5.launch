@@ -6,7 +6,7 @@
     <arg name="beta" default="0.1"/>
     <arg name="sim_time" default="50" />
     <arg name="max_pos_error" default="0.5" /> <!--info="milimeters"-->
-    <arg name="max_ori_error" default="0.5" /> <!--info="degrees"-->
+    <arg name="max_ori_error" default="2" /> <!--info="degrees"-->
     <arg name="record_rosbag" default="false"/>
     <arg name="exp" default="exp1"/>
     <arg name="control_method" value="SMC"/>
