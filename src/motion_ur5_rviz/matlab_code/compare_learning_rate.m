@@ -11,14 +11,17 @@ trajectory_type  = '/circular_traj/'; % change to database
 %file_name_1 = 'articular_lambda_5_k_1_alpha_[0 0]_beta_0.1_gamma_0.9_t_50.csv';
 %file_name_2 = 'articular_lambda_5_k_1_alpha_[0.01 0.01]_beta_0.1_gamma_0.9_t_50.csv';
 
-file_name_1 = 'cartesian_L_5_K_1_alpha_0.0_beta_0.1_gamma_0.9_delta_0.1_t_30_uncertainty_0.1.csv';
+file_name_1 = 'cartesian_L_5_K_1_alpha_0.001_beta_0.1_gamma_0.9_delta_0.1_t_30_uncertainty_0.1.csv';
+file_name_2 = 'cartesian_L_5_K_1_alpha_0.005_beta_0.1_gamma_0.9_delta_0.1_t_30_uncertainty_0.1.csv';
 file_name_2 = 'cartesian_L_5_K_1_alpha_0.01_beta_0.1_gamma_0.9_delta_0.1_t_30_uncertainty_0.1.csv';
+
 file_path = fullfile(pwd, 'data/',control_method, trajectory_type);
 image_path = fullfile(pwd,'document/images/', control_method, trajectory_type);
 
 % read table
 data_1 = readtable(fullfile(file_path, file_name_1));%,'PreserveVariableNames',true);
 data_2 = readtable(fullfile(file_path, file_name_2));%,'PreserveVariableNames',true);
+data_3 = readtable(fullfile(file_path, file_name_2));
 
 % time variables
 time = data_1.t;
@@ -30,9 +33,14 @@ t_dt = (time(t_end) - time(t_start))/5;
 % get articular data
 [q_ref_1, dq_ref_1, ddq_ref_1, q_med_1, dq_med_1, ddq_med_1, q_e_1, dq_e_1, ddq_e_1] = get_articular_data(data_1, t_start, t_step, t_end);
 [q_ref_2, dq_ref_2, ddq_ref_2, q_med_2, dq_med_2, ddq_med_2, q_e_2, dq_e_2, ddq_e_2] = get_articular_data(data_2, t_start, t_step, t_end);
+[q_ref_3, dq_ref_3, ddq_ref_3, q_med_3, dq_med_3, ddq_med_3, q_e_3, dq_e_3, ddq_e_3] = get_articular_data(data_3, t_start, t_step, t_end);
+
 
 % get control parameters
-[K1_1, K2_1, K1_2, K2_2] = get_control_parameters(control_method, data_2, t_start, t_step, t_end);
+[~, ~, K1_1, K2_1] = get_control_parameters(control_method, data_2, t_start, t_step, t_end);
+[~, ~, K1_2, K2_2] = get_control_parameters(control_method, data_2, t_start, t_step, t_end);
+[~, ~, K1_3, K2_3] = get_control_parameters(control_method, data_3, t_start, t_step, t_end);
+
 
 % colors
 color1 = [0, 0.4470, 0.7410];                % dark red        --alpha=0.1 
@@ -51,7 +59,9 @@ for i=1:6
     plot_name = strcat(name_list(i),' ($\mathrm{rad}$)');
     subplot(3, 2, i),
     plot(time(t_start:t_step:t_end), q_e_1(:, i), 'linestyle', '-', 'linewidth', 2, 'color', color1), hold on, grid on, box on
-    plot(time(t_start:t_step:t_end), q_e_2(:, i), 'linestyle', '--','linewidth', 2, 'color', color2), hold on, grid on, box on
+    plot(time(t_start:t_step:t_end), q_e_2(:, i), 'linestyle', ':','linewidth', 2, 'color', color2), hold on, grid on, box on
+    plot(time(t_start:t_step:t_end), q_e_3(:, i), 'linestyle', '--','linewidth', 2, 'color', color3), hold on, grid on, box on
+    
     xlabel('time (s)', 'interpreter', 'latex')
     ylabel(plot_name, 'interpreter', 'latex')
     xticks(time(t_start):t_dt:time(t_end))
@@ -62,15 +72,12 @@ for i=1:6
     
 end         
 % add legend
-Lgnd = legend({'fixed gains', 'with optimization'}, 'interpreter', 'latex', 'Orientation','horizontal');
+Lgnd = legend({'$\alpha$ = 0.001', '$\alpha$ = 0.005', '$\alpha$ = 0.01'}, 'interpreter', 'latex', 'Orientation','horizontal');
 Lgnd.FontSize = 12;
 Lgnd.Position(1) = 0.3;
 Lgnd.Position(2) = 0.95;
     
 
-% Save image
-file_name     = fullfile(image_path, 'joint_position_error');
-saveas(gcf,file_name,'epsc')  
     
 
 %% joint velocity
@@ -91,7 +98,9 @@ for i=1:6
     plot_name = strcat(name_list(i),'  ($\mathrm{\frac{rad}{s}}$)');
     subplot(3, 2, i),
     plot(time(t_start:t_step:t_end), dq_e_1(:, i), 'linestyle', '-', 'linewidth', 2, 'color', color1), hold on, grid on, box on
-    plot(time(t_start:t_step:t_end), dq_e_2(:, i), 'linestyle', '--','linewidth', 2, 'color', color2), hold on, grid on, box on
+    plot(time(t_start:t_step:t_end), dq_e_2(:, i), 'linestyle', ':','linewidth', 2, 'color', color2), hold on, grid on, box on
+    plot(time(t_start:t_step:t_end), dq_e_3(:, i), 'linestyle', '--','linewidth', 2, 'color', color3), hold on, grid on, box on
+
     xlabel('time (s)', 'interpreter', 'latex')
     ylabel(plot_name, 'interpreter', 'latex')
     xticks(time(t_start):t_dt:time(t_end))
@@ -102,15 +111,15 @@ for i=1:6
     
 end         
 % add legend
-Lgnd = legend({'fixed gains', 'with optimization'}, 'interpreter', 'latex', 'Orientation','horizontal');
+Lgnd = legend({'$\alpha$ = 0.001', '$\alpha$ = 0.005', '$\alpha$ = 0.01'}, 'interpreter', 'latex', 'Orientation','horizontal');
 Lgnd.FontSize = 12;
 Lgnd.Position(1) = 0.3;
 Lgnd.Position(2) = 0.95;
 
 
 % Save image
-file_name     = fullfile(image_path, 'joint_velocity_error');
-saveas(gcf,file_name,'epsc')  
+%file_name     = fullfile(image_path, 'joint_velocity_error');
+%saveas(gcf,file_name,'epsc')  
 
 
 
@@ -130,7 +139,9 @@ for i=1:6
     plot_name = strcat(name_list(i),'  ($\mathrm{\frac{rad}{s^2}}$)');
     subplot(3, 2, i),
     plot(time(t_start:t_step:t_end), ddq_e_1(:, i), 'linestyle', '-', 'linewidth', 2, 'color', color1), hold on, grid on, box on
-    plot(time(t_start:t_step:t_end), ddq_e_2(:, i), 'linestyle', '--','linewidth', 2, 'color', color2), hold on, grid on, box on
+    plot(time(t_start:t_step:t_end), ddq_e_2(:, i), 'linestyle', ':','linewidth', 2, 'color', color2), hold on, grid on, box on
+    plot(time(t_start:t_step:t_end), ddq_e_3(:, i), 'linestyle', '--','linewidth', 2, 'color', color3), hold on, grid on, box on
+
     xlabel('time (s)', 'interpreter', 'latex')
     ylabel(plot_name, 'interpreter', 'latex')
     xticks(time(t_start):t_dt:time(t_end))
@@ -141,15 +152,15 @@ for i=1:6
     
 end         
 % add legend
-Lgnd = legend({'fixed gains', 'with optimization'}, 'interpreter', 'latex', 'Orientation','horizontal');
+Lgnd = legend({'$\alpha$ = 0.001', '$\alpha$ = 0.005', '$\alpha$ = 0.01'}, 'interpreter', 'latex', 'Orientation','horizontal');
 Lgnd.FontSize = 12;
 Lgnd.Position(1) = 0.3;
 Lgnd.Position(2) = 0.95;
 
 
 % Save image
-file_name     = fullfile(image_path, 'joint_acceleration_error');
-saveas(gcf,file_name,'epsc')  
+%file_name     = fullfile(image_path, 'joint_acceleration_error');
+%saveas(gcf,file_name,'epsc')  
 
 
 %% control gains: first control parameter
@@ -194,7 +205,9 @@ for i=1:6
     plot_name = name_list_1(i);
     subplot(3, 2, i),
     plot(time(t_start:t_step:t_end), K1_1(:, i), 'linestyle', '-', 'linewidth', 2, 'color', color1), hold on, grid on, box on
-    plot(time(t_start:t_step:t_end), K1_2(:, i), 'linestyle', '--','linewidth', 2, 'color', color2), hold on, grid on, box on
+    plot(time(t_start:t_step:t_end), K1_2(:, i), 'linestyle', ':','linewidth', 2, 'color', color2), hold on, grid on, box on
+    plot(time(t_start:t_step:t_end), K1_3(:, i), 'linestyle', '--','linewidth', 2, 'color', color3), hold on, grid on, box on
+
     xlabel('time (s)', 'interpreter', 'latex')
     ylabel(plot_name, 'interpreter', 'latex')
     xticks(time(t_start):t_dt:time(t_end))
@@ -205,22 +218,24 @@ for i=1:6
     
 end         
 % add legend
-Lgnd = legend({'fixed gains', 'with optimization'}, 'interpreter', 'latex', 'Orientation','horizontal');
+Lgnd = legend({'$\alpha$ = 0.001', '$\alpha$ = 0.005', '$\alpha$ = 0.01'}, 'interpreter', 'latex', 'Orientation','horizontal');
 Lgnd.FontSize = 12;
 Lgnd.Position(1) = 0.3;
 Lgnd.Position(2) = 0.95;
 
 
 % Save image
-file_name     = fullfile(image_path, 'control_parameter_1');
-saveas(gcf,file_name,'epsc')  
+%file_name     = fullfile(image_path, 'control_parameter_1');
+%saveas(gcf,file_name,'epsc')  
 
 %% control gains: second control parameter
 for i=1:6
     plot_name = name_list_2(i);
     subplot(3, 2, i),
     plot(time(t_start:t_step:t_end), K2_1(:, i), 'linestyle', '-', 'linewidth', 2, 'color', color1), hold on, grid on, box on
-    plot(time(t_start:t_step:t_end), K2_2(:, i), 'linestyle', '--','linewidth', 2, 'color', color2), hold on, grid on, box on
+    plot(time(t_start:t_step:t_end), K2_2(:, i), 'linestyle', ':','linewidth', 2, 'color', color2), hold on, grid on, box on
+    plot(time(t_start:t_step:t_end), K2_3(:, i), 'linestyle', '--','linewidth', 2, 'color', color3), hold on, grid on, box on
+
     xlabel('time (s)', 'interpreter', 'latex')
     ylabel(plot_name, 'interpreter', 'latex')
     xticks(time(t_start):t_dt:time(t_end))
@@ -231,12 +246,12 @@ for i=1:6
     
 end         
 % add legend
-Lgnd = legend({'fixed gains', 'with optimization'}, 'interpreter', 'latex', 'Orientation','horizontal');
+Lgnd = legend({'$\alpha$ = 0.001', '$\alpha$ = 0.005', '$\alpha$ = 0.01'}, 'interpreter', 'latex', 'Orientation','horizontal');
 Lgnd.FontSize = 12;
 Lgnd.Position(1) = 0.3;
 Lgnd.Position(2) = 0.95;
 
 
 % Save image
-file_name     = fullfile(image_path, 'control_parameter_2');
-saveas(gcf,file_name,'epsc')  
+%file_name     = fullfile(image_path, 'control_parameter_2');
+%saveas(gcf,file_name,'epsc')  

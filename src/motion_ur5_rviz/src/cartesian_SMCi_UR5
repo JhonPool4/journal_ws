@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # ============================================================
 #	Project :   Concytec - UTEC
@@ -64,6 +64,8 @@ import rospy 							# ROS with Python
 import os 								# Manipulate path names
 import pandas as pd 					# Save data
 from sensor_msgs.msg import JointState 	# To send angular position to robot
+import sys
+sys.path.insert(0,'/home/emanuelsamir/Documentos/dev/concytec/journal_ws/src/labpythonlib')
 from labpythonlib.lab_functions import *
 from labpythonlib.lab_markers import *	
 
@@ -250,7 +252,7 @@ dddp_e = np.zeros(6)
 # ================================
 # 			SMC controller
 # ================================
-alpha = 0.01 # 10 15 20
+alpha = 0.005 # 10 15 20
 gamma = 0.9
 beta  = 0.1
 delta = 0.1
@@ -272,10 +274,11 @@ up = np.zeros(6)
 # 		Dynamic simulation
 # ================================
 t = 0.0
-t_reach = 50 # 1 min
+t_reach = 30	 # 1 min
+M_uncertainty = 0.1
 
 # Filename
-fn = "cartesian"+"_L_"+str(Lambda[0])+"_K_"+str(K[0])+"_alpha_"+str(alpha)+"_beta_"+str(beta)+"_gamma_"+str(gamma)+"_delta_"+str(delta)+"_t_"+str(t_reach)+".csv"
+fn = "cartesian"+"_L_"+str(Lambda[0])+"_K_"+str(K[0])+"_alpha_"+str(alpha)+"_beta_"+str(beta)+"_gamma_"+str(gamma)+"_delta_"+str(delta)+"_t_"+str(t_reach)+ "_uncertainty_" + str(M_uncertainty) +".csv"
 
 # save file .csv
 path = os.path.join(folder_data, fn)
@@ -440,7 +443,9 @@ while not rospy.is_shutdown():
 	t = t + dt
 	up = copy(u)
 	
-	if t>=(t_reach): # 60 sec
+	if t>(t_reach): # 60 sec
+		print(t)
+		print(t_reach)
 		print("Reached maximum of steps")
 		print("data created with name: ", fn)
 		break
