@@ -21,8 +21,8 @@ for img_index=1:fc.cnt_v_img*fc.cnt_h_img
     ax = gca; % current axes
     ax.FontSize = fc.axis_font_size;
     set(gca,'TickLabelInterpreter','latex')   
-    if (img_index==1 && fc.legend_flag==1)
-        title(" ", "FontSize",40)
+    if (img_index==1 && fc.legend_space~=0)
+        title(" ", "FontSize",fc.legend_space)
     end
         
 end 
@@ -35,8 +35,8 @@ set(chosen_figure,'Units','centimeters');
 set(chosen_figure,'Position',[0 0 fc.img_width fc.img_height]);
 
 % add legend
-if (fc.legend_flag==1)
-    Lgnd = legend({'fixed gains', 'with optimization'}, 'interpreter', 'latex', 'Orientation','horizontal');
+if (fc.legend_space~=0)
+    Lgnd = legend(fc.legend_list, 'interpreter', 'latex', 'Orientation','horizontal');
     Lgnd.FontSize = fc.legend_font_size;
     Lgnd.Position(1) = fc.legend_xpos;
     Lgnd.Position(2) = fc.legend_ypos;
