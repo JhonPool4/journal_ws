@@ -25,6 +25,8 @@ from sensor_msgs.msg import JointState 	# To send angular position to robot
 
 from labpythonlib.lab_functions import *
 from labpythonlib.lab_markers import *	
+from utils.kalman import *
+
 rospy.init_node("PDi_controller_ur5")
 
 # =============
@@ -76,8 +78,17 @@ column_names = [
 	'J'
 	]
 
+column_tmp = [
+	'dpw1', 'dpw2', 'dpw3', 'dpw4', 'dpw5', 'dpw6',
+    'ddpdw1', 'ddpdw2', 'ddpdw3', 'ddpdw4', 'ddpdw5', 'ddpdw6',
+    'dpw1_kf', 'dpw2_kf', 'dpw3_kf', 'dpw4_kf', 'dpw5_kf', 'dpw6_kf',
+    'ddpdw1_kf', 'ddpdw2_kf', 'ddpdw3_kf', 'ddpdw4_kf', 'ddpdw5_kf', 'ddpdw6_kf',
+    'dddpddw1_kf', 'dddpddw2_kf', 'dddpddw3_kf', 'dddpddw4_kf', 'dddpddw5_kf', 'dddpddw6_kf',
+	]
+
 
 df = pd.DataFrame(columns=column_names,dtype=object)
+df_tmp = pd.DataFrame(columns=column_tmp,dtype=object)
 
 # ===============================
 # 		Configuration of node
@@ -106,7 +117,7 @@ bmarker_act  	= BallMarker(color['YELLOW'])
 q0 = np.array([-0.22007212, -0.72670633, -4.72730825,  0.7416256,   1.57079633, -3.36166477]) # Center [0.5 +0.0 0.0]
 dq0 = np.zeros(6)
 ddq0 = np.zeros(6)
-ddq0 = np.zeros(6) 
+dddq0 = np.zeros(6) 
 # reference trajectory: position, velocity and acceleration
 q_ref =   copy(q0)
 dq_ref =  np.zeros(6) 
@@ -122,6 +133,16 @@ q_e = np.zeros(6)
 dq_e =  np.zeros(6) 
 ddq_e = np.zeros(6) 
 dddq_e = np.zeros(6)
+
+# ===========================
+#   Jerk estimator: Kalman
+# ===========================
+dpw_med0 = np.zeros(6)
+ddpdw_med0 = np.zeros(6)
+dddpddw_med0 = np.zeros(6)
+
+kf = MultipleKalmanDerivator(dt, ndof=6)
+kf.initialize(dpw_med0, ddpdw_med0, dddpddw_med0)
 
 # ===========================
 #   UR5 robot configuration
@@ -249,6 +270,9 @@ fn = "cartesian"+"_KP_"+str(KP[0])+"_KD_"+str(KD[0])+"_alpha_"+str(alpha)+"_beta
 path = os.path.join(folder_data, fn)
 df.to_csv(path, index=False)
 
+path_tmp = os.path.join(pwd, 'tmp.csv')
+df_tmp.to_csv(path_tmp, index=False)
+
 while not rospy.is_shutdown():
     # desired values (cartesian space)
     p_des, dp_des, ddp_des, dddp_des = circular_trayectory_generator(t)
@@ -302,8 +326,16 @@ while not rospy.is_shutdown():
     # update states
     q_med, dq_med, ddq_med = real_robot.read_joint_position_velocity_acceleration()
     p_med, dp_med, ddp_med = real_robot.read_cartesian_position_velocity_acceleration()
+
     R_med = real_robot.read_ee_orientation()
     w_med, dw_med = real_robot.read_ee_angular_velocity_acceleration()
+
+
+    # Kalman update
+    dpw_med = np.concatenate((dp_med, w_med), axis=0)
+    ddpdw_med = np.concatenate((ddp_med, dw_med), axis=0)
+    dpw_kf, ddpdw_kf, dddpddw_kf = kf.update(dpw_med, ddpdw_med)
+
     # represent orientation with Euler angles
     angle_med, axis_med = rot2axisangle(R_med)
     axis_angle_med = angle_med*axis_med
@@ -391,10 +423,24 @@ while not rospy.is_shutdown():
             tl(u)  +\
             tl(np.array([c]))
 
+    row_tmp = tl(dpw_med) +\
+                tl(ddpdw_med) +\
+                tl(dpw_kf) +\
+                tl(ddpdw_kf) +\
+                tl(dddpddw_kf)
+
+
     row = tl(np.expand_dims(np.array(row), axis = 1))
+    row_tmp = tl(np.expand_dims(np.array(row_tmp), axis = 1))
+
     # Fix for redimensionality
     df_row = pd.DataFrame.from_dict(dict(zip(column_names, row)))
     df.append(df_row, sort = False).to_csv(path, index=False, mode = 'a', header=False)
+
+    df_row_tmp = pd.DataFrame.from_dict(dict(zip(column_tmp, row_tmp)))
+
+    df_tmp.append(df_row_tmp, sort = False).to_csv(path_tmp, index=False, mode = 'a', header=False)
+
 
     # Update
     t = t + dt

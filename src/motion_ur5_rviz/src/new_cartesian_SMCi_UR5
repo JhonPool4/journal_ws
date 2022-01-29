@@ -164,6 +164,17 @@ ddq_e = np.zeros(6)
 dddq_e = np.zeros(6)
 
 # ===========================
+#   Jerk estimator: Kalman
+# ===========================
+dpw_med0 = np.zeros(6)
+ddpdw_med0 = np.zeros(6)
+dddpddw_med0 = np.zeros(6)
+
+kf = MultipleKalmanDerivator(dt, ndof=6)
+kf.initialize(dpw_med0, ddpdw_med0, dddpddw_med0)
+
+
+# ===========================
 #   UR5 robot configuration
 # ===========================
 # joints name of UR5 robot
@@ -352,6 +363,12 @@ while not rospy.is_shutdown():
     p_med, dp_med, ddp_med = real_robot.read_cartesian_position_velocity_acceleration()
     R_med = real_robot.read_ee_orientation()
     w_med, dw_med = real_robot.read_ee_angular_velocity_acceleration()
+
+    # Kalman update
+    dpw_med = np.concatenate((dp_med, w_med), axis=0)
+    ddpdw_med = np.concatenate((ddp_med, dw_med), axis=0)
+    dpw_kf, ddpdw_kf, dddpddw_kf = kf.update(dpw_med, ddpdw_med)
+
     # represent orientation with Euler angles
     angle_med, axis_med = rot2axisangle(R_med)
     axis_angle_med = angle_med*axis_med
