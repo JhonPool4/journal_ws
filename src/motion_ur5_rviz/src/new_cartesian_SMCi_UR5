@@ -68,15 +68,20 @@ from sensor_msgs.msg import JointState 	# To send angular position to robot
 from labpythonlib.lab_functions import *
 from labpythonlib.lab_markers import *	
 
+from utils.kalman import *
+from utils.datareader import *
+
 # =============
 # 	Save data
 # =============
 origin_data   = '../data'
 origin_images = '../images'
+origin_assets = '../assets'
 trajectory_type 	= './SMCi/circular_traj'
 pwd = os.path.dirname(os.path.realpath(__file__))
 folder_data = os.path.join(pwd, origin_data, trajectory_type)
 folder_images = os.path.join(pwd, origin_images, trajectory_type)
+folder_assets = os.path.join(pwd, origin_assets)
 
 # Creates folder_data if it does not exist
 if not os.path.exists(folder_data):
@@ -303,10 +308,23 @@ fn = "cartesian"+"_L_"+str(Lambda[0])+"_K_"+str(K[0])+"_alpha_"+str(alpha)+"_bet
 path = os.path.join(folder_data, fn)
 df.to_csv(path, index=False)
 
+# ================================
+# 		Dataset Trajectory
+# ================================
+dataset_type = "jigsaw" # jigsaw or desk
+fn = "Suturing_B001.txt"
+dataset_path = os.path.join(folder_assets, dataset_type, fn)
+dr = DataReaderJIGSAW(dataset_path)
+dr.read_dataset()
+dr.calculate()
+
 while not rospy.is_shutdown():
     # desired values (cartesian space)
-    p_des, dp_des, ddp_des, dddp_des = circular_trayectory_generator(t)
+    # p_des, dp_des, ddp_des, dddp_des = circular_trayectory_generator(t)
 
+    x_des, dx_des, ddx_dex, dddx_des = dr.dataset_trajectory_generator()
+    p_des = x_des[0:3]
+    rpy_des = x_des[3:6]
     # reference position at Cartesian space
     p_ref, dp_ref, ddp_ref = reference_trajectory(p_des, p_ref, dp_ref, dt)
 
@@ -474,6 +492,10 @@ while not rospy.is_shutdown():
     # Update
     t = t + dt
     Fp = copy(F)
+
+    if dr.check():
+        print("Reached maximum of steps")
+        break
 
     if t>=(sim_time): # 60 sec
         print("Reached maximum of steps")

@@ -1,6 +1,6 @@
 <launch>
-    <arg name="uncertainty" default="0.0"/>
-    <arg name="alpha" default="0.0" />
+    <arg name="uncertainty" default="25"/>
+    <arg name="alpha" default="0.01" />
     <arg name="gamma" default="0.9" />
     <arg name="beta" default="0.1"/>
     <arg name="sim_time" default="50" />
