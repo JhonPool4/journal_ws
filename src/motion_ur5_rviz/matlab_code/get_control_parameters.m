@@ -1,6 +1,6 @@
 function [K1, K2] = get_control_parameters(control_method, data, t_start, t_step, t_end)
 
-if control_method == "SMCi"
+if control_method == "SMC"
 
 
     K1= [    data.L1(t_start:t_step:t_end), ...
@@ -17,7 +17,7 @@ if control_method == "SMCi"
                 data.K5(t_start:t_step:t_end), ...
                 data.K6(t_start:t_step:t_end)]; 
 
-elseif control_method == "PDi"
+elseif control_method == "PD"
   
     K1= [    data.KP1(t_start:t_step:t_end), ...
                 data.KP2(t_start:t_step:t_end), ...

@@ -4,6 +4,14 @@
 Useful commands:
 ----------------
     - xacro file.xacro > file.urdf
+    - roslaunch motion_ur5_rviz new_cartesian_PDi_UR5.launch 
+        trajectory:=circular
+        exp=exp1
+        uncertainty:=100 
+        alpha:=0 
+        sim_time:=100 
+        record_rosbag:=true 
+        
 
 Updates:
 --------
@@ -27,23 +35,23 @@ from labpythonlib.lab_functions import *
 from labpythonlib.lab_markers import *	
 from utils.kalman import *
 
-rospy.init_node("PDi_controller_ur5")
 
 # =============
 # 	Save data
 # =============
-origin_data   = '../data'
-origin_images = '../images'
-trajectory_type 	= './PDi/circular_traj'
+data_dir   = rospy.get_param('/pd_node/data_path')
+images_dir = rospy.get_param('/pd_node/image_path')
+videos_dir = rospy.get_param('/pd_node/video_path')
 pwd = os.path.dirname(os.path.realpath(__file__))
-folder_data = os.path.join(pwd, origin_data, trajectory_type)
-folder_images = os.path.join(pwd, origin_images, trajectory_type)
 
 # Creates folder_data if it does not exist
-if not os.path.exists(folder_data):
-	os.makedirs(folder_data)
-if not os.path.exists(folder_images):
-	os.makedirs(folder_images)
+if not os.path.exists(data_dir):
+	os.makedirs(data_dir)
+if not os.path.exists(images_dir):
+	os.makedirs(images_dir)
+if not os.path.exists(videos_dir):
+	os.makedirs(videos_dir)
+
 
 column_names = [
 	't',
@@ -94,7 +102,7 @@ df_tmp = pd.DataFrame(columns=column_tmp,dtype=object)
 # 		Configuration of node
 # ===============================
 # Create a nodo: PD_controller
-rospy.init_node("PDi_controller_ur5")
+rospy.init_node("pd_node")
 # Public in topic /joint_states	to send joint data		
 pub = rospy.Publisher('joint_states', JointState, queue_size=1000)
 # Loop rate (in Hz)
@@ -239,10 +247,10 @@ axis_angle_ref = np.zeros(3)
 # ================================
 # 			PD controller
 # ================================
-alpha = rospy.get_param('/dummy_node/alpha')        # 10 15 20  # @param learning rate
-gamma = rospy.get_param('/dummy_node/gamma') 		# @param hyperparameter for position error reduction
-beta  = rospy.get_param('/dummy_node/beta') 			# @param hyperparameter for acceleration error reduction 
-delta = rospy.get_param('/dummy_node/uncertainty')  # @param disturbance porcentage [0 25 50 75 100]
+alpha = rospy.get_param('/pd_node/alpha')        # 10 15 20  # @param learning rate
+gamma = rospy.get_param('/pd_node/gamma') 		# @param hyperparameter for position error reduction
+beta  = rospy.get_param('/pd_node/beta') 			# @param hyperparameter for acceleration error reduction 
+delta = rospy.get_param('/pd_node/uncertainty')  # @param disturbance porcentage [0 25 50 75 100]
 
 KP    = np.array([9, 9, 9, 9, 9, 9])
 KD    = 2*np.sqrt(KP)
@@ -259,15 +267,15 @@ u  = np.zeros(6) 		# @param effort control
 # 		Dynamic simulation
 # ================================
 t = 0.0 				# @param current simulation time
-sim_time = rospy.get_param('/dummy_node/sim_time') 			 # @param maximum simulation time [s]
-max_pos_error = rospy.get_param('/dummy_node/max_pos_error') # @param maximum position error [mm]
-max_ori_error = rospy.get_param('/dummy_node/max_ori_error') # @param maximum orientation error [deg]
+sim_time = rospy.get_param('/pd_node/sim_time') 			 # @param maximum simulation time [s]
+max_pos_error = rospy.get_param('/pd_node/max_pos_error') # @param maximum position error [mm]
+max_ori_error = rospy.get_param('/pd_node/max_ori_error') # @param maximum orientation error [deg]
 
 # Filename
 fn = "cartesian"+"_KP_"+str(KP[0])+"_KD_"+str(KD[0])+"_alpha_"+str(alpha)+"_beta_"+str(beta)+"_gamma_"+str(gamma)+"_delta_"+str(delta)+"_t_"+str(sim_time)+".csv"
 
 # save file .csv
-path = os.path.join(folder_data, fn)
+path = os.path.join(data_dir, fn)
 df.to_csv(path, index=False)
 
 path_tmp = os.path.join(pwd, 'tmp.csv')

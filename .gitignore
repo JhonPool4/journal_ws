@@ -15,3 +15,5 @@ src/labpythonlib/labpythonlib.egg-info/
 
 
 *.pyc
+install/
+src/rbdl
