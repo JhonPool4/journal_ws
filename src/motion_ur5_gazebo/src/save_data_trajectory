@@ -26,6 +26,7 @@ class SaveDataTrayectory:
 
     def startCB(self, msg):
         self.f_start = msg.data
+    
     def position_command_CB(self, msg):
         self.position_command[0] = msg.q1
         self.position_command[1] = msg.q2
@@ -75,14 +76,12 @@ if __name__ == '__main__':
     cwd = os.path.dirname(os.path.realpath(__file__))
     folder = os.path.join(cwd, origin, suffix)
 
-    column_names = [       
+    column_names = [
         'q1', 'q2', 'q3', 'q4', 'q5', 'q6',
         'dq1', 'dq2', 'dq3', 'dq4', 'dq5', 'dq6',
-
         'q1_des', 'q2_des', 'q3_des', 'q4_des', 'q5_des', 'q6_des',
         'dq1_des', 'dq2_des', 'dq3_des', 'dq4_des', 'dq5_des', 'dq6_des'
-        ]
-
+    ]
     df = pd.DataFrame(columns=column_names)
 
     # Filename
@@ -96,23 +95,27 @@ if __name__ == '__main__':
     path = os.path.join(folder, fn)
     df.to_csv(path, index=False) 
 
+    # position and velocity vectors
+    q  = np.zeros(6)
+    dq = np.zeros(6)
+    q_des  = np.zeros(6)
+    dq_des = np.zeros(6)
+
     while not rospy.is_shutdown():
         if (save_data.f_start == 1):
+            q = save_data.current_position
+            dq= save_data.current_velocity
+            q_des = save_data.position_command
+            dq_des= save_data.velocity_command
+            if np.linalg.norm(q_des) != 0:
+                # Append data
+                row = tl(q)+tl(dq) + tl(q_des)+tl(dq_des)
+                row = tl(np.expand_dims(np.array(row), axis = 1))
 
-        # Append data
-        row = tl(q)+tl(dq) + tl(q_des)+tl(dq_des)
-
-    	row = tl(np.expand_dims(np.array(row), axis = 1))
-
-        # Fix for redimensionality
-        df_row = pd.DataFrame.from_dict(dict(zip(column_names, row)))
-
-        df.append(df_row, sort = False).to_csv(path, index=False, mode = 'a', header=False)    
-
-        rate.sleep()  
-
+                # Fix for redimensionality
+                df_row = pd.DataFrame.from_dict(dict(zip(column_names, row)))
+                df.append(df_row, sort = False).to_csv(path, index=False, mode = 'a', header=False)    
+                rate.sleep()  
         else:
           # wait
           print("waiting start signal...")
-
-

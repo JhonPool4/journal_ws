@@ -86,7 +86,7 @@
     <xacro:property name="forearm_radius" value="0.040" />    <!-- manually measured -->
     <xacro:property name="wrist_radius" value="0.045" />      <!-- manually measured -->
 
-    <!--mechanical structure of ur5 robot-->
+
     <link name="${prefix}base_link" >
       <visual>
         <geometry>
@@ -300,7 +300,7 @@
         <origin xyz="0.0 0.0 ${wrist_2_length}" rpy="0 0 0" />
       </xacro:cylinder_inertial>
     </link>
-    
+
     <joint name="${prefix}wrist_3_joint" type="revolute">
       <parent link="${prefix}wrist_2_link" />
       <child link = "${prefix}wrist_3_link" />
@@ -336,7 +336,7 @@
         </geometry>
       </collision>
       <xacro:cylinder_inertial radius="0.0375" length="0.0345" mass="${wrist_3_mass}">
-        <origin xyz="0.0 ${wrist_3_length - 0.0345/2} 0.0" rpy="0 0 0" />
+        <origin xyz="0.0 ${wrist_3_length - 0.0345/2} 0.0" rpy="${pi/2} 0 0" />
       </xacro:cylinder_inertial>
     </link>
 
@@ -352,10 +352,10 @@
         <geometry>
           <box size="0.01 0.01 0.01"/>
         </geometry>
-        <origin xyz="-0.01 0 0" rpy="0 0 0"/>
+        <origin rpy="0 0 0" xyz="-0.01 0 0"/>
       </collision>
     </link>
-    
+
     <!--transmission interface of ur5 robot-->
     <xacro:ur_arm_transmission prefix="${prefix}" hw_interface="${transmission_hw_interface}" />
     <!--gazebo configuration of ur5 robot-->
@@ -373,13 +373,13 @@
       <child link="${prefix}base"/>
     </joint>
 
-    <!-- Frame coincident with all-zeros TCP on UR controller
+    <!-- Frame coincident with all-zeros TCP on UR controller -->
     <link name="${prefix}tool0"/>
     <joint name="${prefix}wrist_3_link-tool0_fixed_joint" type="fixed">
       <origin xyz="0 ${wrist_3_length} 0" rpy="${pi/-2.0} 0 0"/>
       <parent link="${prefix}wrist_3_link"/>
       <child link="${prefix}tool0"/>
-    </joint> -->
+    </joint>
 
   </xacro:macro>
 </robot>
