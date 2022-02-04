@@ -34,6 +34,8 @@ from sensor_msgs.msg import JointState 	# To send angular position to robot
 from labpythonlib.lab_functions import *
 from labpythonlib.lab_markers import *	
 from utils.kalman import *
+from utils.datareader import *
+
 
 
 # =============
@@ -43,6 +45,9 @@ data_dir   = rospy.get_param('/pd_node/data_path')
 images_dir = rospy.get_param('/pd_node/image_path')
 videos_dir = rospy.get_param('/pd_node/video_path')
 pwd = os.path.dirname(os.path.realpath(__file__))
+
+origin_assets = '../assets'
+folder_assets = os.path.join(pwd, origin_assets)
 
 # Creates folder_data if it does not exist
 if not os.path.exists(data_dir):
@@ -118,11 +123,27 @@ jstate = JointState()
 bmarker_des 	= BallMarker(color['GREEN'])
 bmarker_act  	= BallMarker(color['YELLOW'])
 
+# ================================
+# 		Dataset Trajectory
+# ================================
+dataset_used = True
+
+if dataset_used:
+    dataset_type = "jigsaw" # jigsaw or desk
+    fn = "Suturing_B001.txt"
+    dataset_path = os.path.join(folder_assets, dataset_type, fn)
+    dr = DataReaderJIGSAW(dataset_path)
+    dr.read_dataset()
+    dr.calculate()
+
+
 # =======================================
 # 	Set home joint configuration of UR5
 # =======================================
 #  Home joint configuration of ur5 robot (radians)
-q0 = np.array([-0.22007212, -0.72670633, -4.72730825,  0.7416256,   1.57079633, -3.36166477]) # Center [0.5 +0.0 0.0]
+#q0 = np.array([-0.22007212, -0.72670633, -4.72730825,  0.7416256,   1.57079633, -3.36166477]) # Center [0.5 +0.0 0.0]
+q0 = np.array([ 0.35957749, -1.19879333, -4.81902357,  2.68479446,  2.25581278,  0.14631292]) # Initial joint conf for dataset
+
 dq0 = np.zeros(6)
 ddq0 = np.zeros(6)
 dddq0 = np.zeros(6) 
@@ -283,7 +304,14 @@ df_tmp.to_csv(path_tmp, index=False)
 
 while not rospy.is_shutdown():
     # desired values (cartesian space)
-    p_des, dp_des, ddp_des, dddp_des = circular_trayectory_generator(t)
+    if not dataset_used:
+        p_des, dp_des, ddp_des, dddp_des = circular_trayectory_generator(t)
+        rpy_des = rot2rpy(R_des)
+
+    else:
+        x_des, dx_des, ddx_dex, dddx_des = dr.dataset_trajectory_generator()
+        p_des = x_des[0:3]
+        rpy_des = x_des[3:6]
 
     # reference position at Cartesian space
     p_ref, dp_ref, ddp_ref = reference_trajectory(p_des, p_ref, dp_ref, dt)
@@ -446,13 +474,18 @@ while not rospy.is_shutdown():
     df.append(df_row, sort = False).to_csv(path, index=False, mode = 'a', header=False)
 
     df_row_tmp = pd.DataFrame.from_dict(dict(zip(column_tmp, row_tmp)))
-
     df_tmp.append(df_row_tmp, sort = False).to_csv(path_tmp, index=False, mode = 'a', header=False)
 
 
     # Update
     t = t + dt
     Fp = copy(F)
+
+    if dataset_used:
+        if dr.check():
+            print("Reached maximum of steps")
+            break
+
 
     if t>=(sim_time): # 60 sec
         print("Reached maximum of steps")

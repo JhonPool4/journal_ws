@@ -15,5 +15,7 @@ src/labpythonlib/labpythonlib.egg-info/
 
 
 *.pyc
+src/motion_ur5_rviz/src/utils/*.pyc
+src/motion_ur5_rviz/experiments/
 install/
 src/rbdl

@@ -6,7 +6,7 @@ from numpy.linalg import inv
 from numpy import matmul as mx
 
 class MultipleKalmanDerivator:
-    def __init__(self, deltaT, ndof = 6):
+    def __init__(self, deltaT, ndof = 6, sigmaQ = 1e-4, sigmaR = 1e-4):
         self.dq = np.zeros(ndof)
         self.ddq = np.zeros(ndof)
         self.dddq = np.zeros(ndof)
@@ -16,7 +16,7 @@ class MultipleKalmanDerivator:
 
         self.derivators = []
         for _ in range(ndof):
-            self.derivators.append(KalmanDerivator(self.deltaT))
+            self.derivators.append(KalmanDerivator(self.deltaT, sigmaQ, sigmaR))
 
     def initialize(self, dq, ddq, dddq):
         for i in range(self.ndof):
@@ -41,7 +41,7 @@ class MultipleKalmanDerivator:
         return self.dq, self.ddq, self.dddq
 
 class KalmanDerivator:
-    def __init__(self, deltaT):
+    def __init__(self, deltaT, sigmaQ = 1e-4, sigmaR = 1e-4):
         self.deltaT = deltaT
         
         self.x_k_k = np.zeros((3,1))
@@ -52,12 +52,14 @@ class KalmanDerivator:
         
         self.K = np.zeros((3,2)) 
         
-        self.Q = 1*np.array([[deltaT**5/30, deltaT**4/24, deltaT**3/6],
-                            [deltaT**4/24, deltaT**3/3, deltaT**2/2],
-                            [deltaT**3/6, deltaT**2/2, deltaT]]) #
 
-        
-        self.R = 0.0001*np.eye(2)
+        self.Q = sigmaQ * np.eye(3)
+
+        #self.Q = 1*np.array([[deltaT**5/30, deltaT**4/24, deltaT**3/6],
+        #                    [deltaT**4/24, deltaT**3/3, deltaT**2/2],
+        #                    [deltaT**3/6, deltaT**2/2, deltaT]]) #
+
+        self.R = sigmaR * np.eye(2)
         
         self.I = np.eye(3)
 

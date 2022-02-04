@@ -79,8 +79,12 @@ class DataReaderJIGSAW:
         return x, dx, ddx, dddx
 
     def check(self):
-        if self.i >= self.max_count:
+        if self.i >= self.max_count-4:
             return True 
         return False
+
+
+    def reset(self):
+        self.i = 0
 
         
