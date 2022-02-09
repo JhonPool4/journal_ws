@@ -8,7 +8,7 @@ from labpythonlib.lab_functions import *
 from labpythonlib.lab_markers import *	
 
 
-class DataReaderJIGSAW:
+class DataReader:
     def __init__(self, path, dt = 0.01):
         self.datapath = path
         self.xs = np.array([])
@@ -30,14 +30,14 @@ class DataReaderJIGSAW:
 
 
         if right_arm == False:
-            ix, iy, iz, iRs, iRe, idx, idy, idz, iwx, iwy, iwz = 0, 1, 2, 3, 12, 13, 14, 15, 16, 17, 18 
+            ix, iy, iz, iRs, iRe, idx, idy, idz, iwx, iwy, iwz = 0, 1, 2, 3, 12, 12, 13, 14, 15, 16, 17 
         else: 
-            ix, iy, iz, iRs, iRe, idx, idy, idz, iwx, iwy, iwz = 38,39,40,41,49, 50,51,52, 53,54, 55
+            ix, iy, iz, iRs, iRe, idx, idy, idz, iwx, iwy, iwz = 38,39,40,41,50, 50,51,52, 53, 54, 55
         
         for i in np.arange(nrows):
             x = df.iloc[i, ix] + 0.3
             y = df.iloc[i, iy] + 0.2
-            z = df.iloc[i, iz]
+            z = df.iloc[i, iz] - 0.3
 
             R = df.iloc[i, iRs:iRe].to_numpy().reshape(3,3)
             rpy = rot2rpy(R)
