@@ -133,11 +133,13 @@ dt 		= 10e-3					# 10  [ms]
 jstate = JointState()
 
 # ===============================
-# 		Line and Ball Marker
+# 		Ball and Frame Marker
 # ===============================
 # Show a ball marker for current and desired position of robot' end-effector
-bmarker_des 	= BallMarker(color['GREEN'])
+bmarker_des 	= BallMarker(color['GREEN'], alpha=0.5)
 bmarker_act  	= BallMarker(color['YELLOW'])
+fmarker_des     = FrameMarker(xyz_pos=[0.5, 0, 0], alpha=0.5)
+fmarker_act     = FrameMarker(xyz_pos=[0.5, 0, 0], alpha=1)
 
 # =======================================
 # 	Set home joint configuration of UR5
@@ -370,7 +372,18 @@ while not rospy.is_shutdown():
 
     # Ball marker
     bmarker_des.xyz(p_ref[0:3])	# Green
-    bmarker_act.xyz(p_med[0:3])	# Yellow
+    bmarker_act.xyz(p_med[0:3])	# Yellow          
+    # Frame marker
+    fmarker_des.xyz(p_ref[0:3]) 
+    fmarker_act.xyz(p_med[0:3])
+    fmarker_des.rotation(R_ref) 
+    fmarker_act.rotation(R_med)
+
+    bmarker_des.publish()
+    bmarker_act.publish()
+
+    fmarker_des.publish()
+    fmarker_act.publish()
 
     # ================
     # 	optimization 

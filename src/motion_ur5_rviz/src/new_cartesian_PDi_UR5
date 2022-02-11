@@ -100,7 +100,7 @@ dt 		= 10e-3					# 10  [ms]
 jstate = JointState()
 
 # ===============================
-# 		Line and Ball Marker
+# 		Ball and Frame Marker
 # ===============================
 # Show a ball marker for current and desired position of robot' end-effector
 bmarker_des 	= BallMarker(color['GREEN'], alpha=0.5)
