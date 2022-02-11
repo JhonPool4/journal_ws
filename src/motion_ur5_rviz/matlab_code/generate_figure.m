@@ -16,8 +16,9 @@ for img_index=1:fc.cnt_v_img*fc.cnt_h_img
     plot(x_data, y_data_2(img_index,:),'linestyle', fc.ls_list{2}, 'linewidth', fc.lw_list{2}, 'color', fc.color_list{2})
     xlabel('Time (s)', 'Interpreter','latex'),
     ylabel(plot_name, 'Interpreter','latex'),
-    xticks(time(t_start):t_dt:time(t_end))
-    xlim([time(t_start) time(t_end)])    
+    %xticks(time(t_start):t_dt:time(t_end))
+    %xlim([time(t_start) time(t_end)])  
+    xticklabels(fc.xticklabel)
     ax = gca; % current axes
     ax.FontSize = fc.axis_font_size;
     set(gca,'TickLabelInterpreter','latex')   
@@ -42,6 +43,7 @@ if (fc.legend_space~=0)
     Lgnd.Position(2) = fc.legend_ypos;
 end
 
+pause(.5)
 % save figure
 saveas(chosen_figure, fc.save_path, 'epsc'); %Set desired file name
 
