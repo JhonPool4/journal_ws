@@ -1,0 +1,12 @@
+body{
+    margin: 0;
+    background: whitesmoke;
+    font-weight:300;
+    font-size:18px;
+}
+
+h1 {
+    font-weight:300;
+    padding-top: 50px;
+    padding-bottom: 100px;
+}
