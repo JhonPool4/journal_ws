@@ -1,17 +1,14 @@
 body{
     margin: 0;
     background: whitesmoke;
-    font-weight:300;
 }
 
 h1 {
-    font-weight:300;
     padding-top: 50px;
     padding-bottom: 100px;
 }
 
 p {
-    font-weight:300;
     padding-top: 50px;
     padding-bottom: 100px;
 }
