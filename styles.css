@@ -22,13 +22,13 @@ h1{
     font-weight:bold;
     font-size:50px;
     padding-top: 50px;
-    padding-bottom: 100px;
+    padding-bottom: 50px;
 
 }
 .abstract {
     text-align: justify;
     font-size: 15px;
-    padding-top: 50px;
-    padding-bottom: 100px;
+    padding-top: 20px;
+    padding-bottom: 20px;
 }
 
