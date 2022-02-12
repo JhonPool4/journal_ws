@@ -3,12 +3,18 @@ body{
     background: whitesmoke;
 }
 
-h1 {
+.title {
+    text-align:center;
+    font-weight:bold;
+    font-size:46px;
+    padding-top: 50px;
+    padding-bottom: 100px;
+
+}
+.text {
+    text-align: justify;
+    font-size: 12px;
     padding-top: 50px;
     padding-bottom: 100px;
 }
 
-p {
-    padding-top: 50px;
-    padding-bottom: 100px;
-}
