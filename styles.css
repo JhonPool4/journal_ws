@@ -4,6 +4,7 @@ body{
     background: whitesmoke;
 }
 
+/*horizontal lines*/
 hr{
     height:2px;
     border-width:0;
@@ -11,28 +12,43 @@ hr{
     background-color:gray;
 }
 
+/*header: 1 priority*/
 h1{
     font-weight:bold; 
-    font-size: 20px;
+    font-size: 25px;
 }
  
-
+/*configuration of title of work*/
 .worktitle {
     text-align:center;
     font-weight:bold;
     font-size:50px;
-    padding-top: 50px;
-    padding-bottom: 50px;
+    padding-top: 10px;
+    padding-bottom: 10px;
     padding-left: 50px;
     padding-right: 50px;    
 
 }
+/*configuration of authors information: name and university*/
+.table_authorsinfo{
+    margin-left: auto;
+    margin-right: auto;
+    padding-top: 10px;
+    padding-bottom: 10px;    
+}
+
+/*to insert data*/
+td{
+    font-size: 30px;
+    text-align: center;
+}
+
+/*abstract text*/
 .abstract {
     text-align: justify;
-    font-size: 15px;
+    font-size: 20px;
     padding-top: 20px;
     padding-bottom: 20px;
     padding-left: 50px;
     padding-right: 50px;    
 }
-
