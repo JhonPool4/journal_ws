@@ -30,29 +30,49 @@ class DataReader:
 
 
         if right_arm == False:
-            ix, iy, iz, iRs, iRe, idx, idy, idz, iwx, iwy, iwz = 0, 1, 2, 3, 12, 12, 13, 14, 15, 16, 17 
-        else: 
-            ix, iy, iz, iRs, iRe, idx, idy, idz, iwx, iwy, iwz = 38,39,40,41,50, 50,51,52, 53, 54, 55
-        
-        for i in np.arange(nrows):
-            x = df.iloc[i, ix] + 0.3
-            y = df.iloc[i, iy] + 0.2
-            z = df.iloc[i, iz] - 0.3
+            # Master
+            ix, iy, iz  = 1, 2, 3
+            iRs, iRe = 4, 12
+            idx, idy, idz = 13, 14, 15
+            iwx, iwy, iwz = 16, 17, 18
 
-            R = df.iloc[i, iRs:iRe].to_numpy().reshape(3,3)
+            # Slave
+            # ix, iy, iz  = 39,40,41
+            # iRs, iRe = 42,50
+            # idx, idy, idz = 51,52,53
+            # iwx, iwy, iwz = 54,55,56
+        else: 
+            # Master
+            ix, iy, iz  = 20, 21, 22
+            iRs, iRe = 23, 31
+            idx, idy, idz = 32,33,34
+            iwx, iwy, iwz = 35,36,37
+        
+            # Slave
+            # ix, iy, iz  = 58, 59, 60
+            # iRs, iRe = 61, 69
+            # idx, idy, idz = 70,71,72
+            # iwx, iwy, iwz = 73,74, 75
+
+        for i in np.arange(nrows):
+            x = df.iloc[i, ix - 1] #- 0.6#- 0.4#+ (right_arm)*(-0.1) + (1 - right_arm)*(0.1) #+0.0#
+            y = df.iloc[i, iy - 1] + 0.5 #+ (right_arm)*(-0.45) + (1 - right_arm)*(0.45) #+0.2#
+            z = df.iloc[i, iz - 1] - 0.2 #+ 0.8 #+0.5#
+
+            R = df.iloc[i, iRs-1:iRe].to_numpy().reshape(3,3)
             rpy = rot2rpy(R)
 
             roll = rpy[0]
             pitch = rpy[1]
             yaw = rpy[2]
 
-            dx = df.iloc[i, idx]
-            dy = df.iloc[i, idy]
-            dz = df.iloc[i, idz]
+            dx = df.iloc[i, idx - 1]
+            dy = df.iloc[i, idy - 1]
+            dz = df.iloc[i, idz - 1]
 
-            wx = df.iloc[i, iwx]
-            wy = df.iloc[i, iwy]
-            wz = df.iloc[i, iwz]
+            wx = df.iloc[i, iwx - 1]
+            wy = df.iloc[i, iwy - 1]
+            wz = df.iloc[i, iwz - 1]
 
             pose.append( [x, y, z, roll, pitch, yaw] )
             vel.append( [dx, dy, dz, wx, wy, wz])

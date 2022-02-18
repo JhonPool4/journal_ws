@@ -11,7 +11,7 @@
     <arg name="record_rosbag" default="false"/>
     <arg name="exp" default="exp1"/>
     <arg name="control_method" value="SMC"/>
-    <arg name="trajectory" default="circular"/>  <!-- circular or dataset_xy (x:{1,2,3,4}, y:{r,l})-->
+    <arg name="trajectory" default="circular"/>  <!-- circular or dataset_# (#:{1,2,3,4,5,6}-->
 
     <!-- Load nominal robot model-->
     <param name="nominal_ur5_urdf" value="$(find ur5_description)/urdf/ur5_uncertainty_0.urdf"/>
