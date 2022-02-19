@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- Load nominal robot model-->
+    <param  name="robot_description" textfile="$(find ur5_description)/urdf/ur5_uncertainty_0.urdf"/>
+    <param name="nominal_ur5_urdf" value="$(find ur5_description)/urdf/ur5_uncertainty_0.urdf"/>
+
+    <!--Publish robot state: TF transformations-->
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen" />
+
+    <!--motion ur5 robot-->
+    <node name="move_ur5" pkg="custom_rviz" type="move_ur5" output="screen"/>    
+
+    <!-- Open Rviz with config -->
+    <node name="custom_rviz" pkg="custom_rviz" type="custom_rviz" output="screen" />
+
+    <!--Open Rviz with config 
+    <arg name="config_file" value="$(find ur5_description)/config/journal_config_ur5.rviz"/>
+    <node name="rviz" pkg="rviz" type="rviz" respawn="false" output="screen" args="-d$(arg config_file)"/>   --> 
+</launch>
