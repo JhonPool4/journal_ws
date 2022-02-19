@@ -5,7 +5,6 @@
 # ============================ 
 import rospy 							# ROS with Python
 import os 								# Manipulate path names
-import pandas as pd 					# Save data
 from sensor_msgs.msg import JointState 	# To send angular position to robot
 from custom_rviz.msg import CartesianPoseError
 from labpythonlib.lab_functions import *
@@ -96,15 +95,6 @@ KD    = np.array([6, 6, 6, 6, 6, 6])
 # ================================
 t = 0.0 				# @param current simulation time
 
-#column_names = ['t','e_x', 'e_y', 'e_z', 'e_or', 'e_op', 'e_oy', 'de_x', 'de_y', 'de_z', 'de_or', 'de_op', 'de_oy']
-column_names = ['t', 'e_p', 'e_o', 'ddde_p', 'ddde_o']
-df = pd.DataFrame(columns=column_names,dtype=object)
-
-# save file .csv
-fn = 'dummy.csv'
-pwd = os.path.dirname(os.path.realpath(__file__))
-df.to_csv(os.path.join(pwd,fn), index=False)
-
 while not rospy.is_shutdown():
     
     # desired values (cartesian space)
@@ -184,17 +174,6 @@ while not rospy.is_shutdown():
     pose_error.dddep = np.linalg.norm(dp_e[0:3])
     pose_error.dddeo = np.linalg.norm(dp_e[3:6])
     pub_pose_error.publish(pose_error)
-
-    # save data
-    row = tl(np.array([t, \
-            np.linalg.norm(p_e[0:3]), \
-            np.linalg.norm(p_e[3:6]), \
-            np.linalg.norm(dp_e[0:3]), \
-            np.linalg.norm(dp_e[3:6])     ]))
-    row = tl(np.expand_dims(np.array(row), axis = 1))
-    # Fix for redimensionality
-    df_row = pd.DataFrame.from_dict(dict(zip(column_names, row)))
-    df.append(df_row, sort = False).to_csv(os.path.join(pwd,fn), index=False, mode = 'a', header=False)    
 
     # Update
     t = t + dt    
