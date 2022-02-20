@@ -1,0 +1,185 @@
+#!/usr/bin/env python3
+
+# ROS libraries and messages
+import rospy, os
+from custom_rviz.msg import CartesianPoseError
+
+# PyQT libraries
+import sys
+from rviz import bindings as rviz
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
+
+# Matplotlib libraries
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+import matplotlib.animation as anim
+import numpy as np
+
+dir_name = os.path.dirname(__file__)
+
+class RvizCamera():
+    def __init__(self, camera_id):
+        self.frame = rviz.VisualizationFrame() # Main container widget of the regular RViz application
+        self.frame.setSplashPath("")           # Path to the image shown during loading
+        self.frame.initialize()                # Instantiate the VisualizationManager, RViz central class
+
+        # Read config file data into config object
+        reader = rviz.YamlConfigReader()
+        config = rviz.Config()
+        reader.readFile(config, os.path.join(dir_name, "../config/journal_views.rviz"))
+
+        # VisualizationFrame reads data from config
+        self.frame.load(config)
+
+        # Disable the menu bar, status bar, and "hide-docks" buttons
+        self.frame.setMenuBar(None)
+        self.frame.setStatusBar(None)
+        self.frame.setHideButtonVisibility(False)
+
+        # Return the VisualizationManager instance, required to make changes in RViz
+        self.manager = self.frame.getManager()
+        view_man = self.manager.getViewManager()
+        view_man.setCurrentFrom(view_man.getViewAt(camera_id))
+
+
+class MplCanvas(FigureCanvas, anim.FuncAnimation):
+
+    def __init__(self, parent=None, width=5, height=4, dpi=100, interval=10):
+        # configuration of figures
+        font = {'family':'serif',
+                'weight' : 'normal',
+                'style': 'normal',
+                'size'   : '20'}
+        lines={'linewidth': '2',
+                'linestyle': '-'}                
+        axes = {'labelsize': 'large',
+                'titlesize': 'large',
+                'linewidth': '1',
+                'grid': 'True',
+                'facecolor': 'white',
+                'edgecolor': 'k'}
+        # pass in the dict as kwargs   
+        plt.rc('font', **font)       
+        plt.rc('lines', **lines)
+        plt.rc('axes', **axes)
+        # axis limits
+        max_x = 10 # simulation time
+        min_y = -0.03
+        max_y = 0.03
+        # create figure
+        self.figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
+        FigureCanvas.__init__(self, self.figure)
+        # end-effector position error
+        self.ax1 = self.figure.add_subplot(2,2,1)
+        self.ax1.set_xlabel('Time (s)')
+        self.ax1.set_ylabel('Position error (mm)')
+        self.ax1.set_xlim((0,max_x))
+        self.ax1.set_ylim((min_y,max_y))
+        self.line1, = self.ax1.plot([], [])
+        # end-effector orientation error
+        self.ax2 = self.figure.add_subplot(2,2,2)
+        self.ax2.set_xlabel('Time (s)')
+        self.ax2.set_ylabel('Orientation error (deg)')
+        self.ax2.set_xlim((0,max_x))
+        self.ax2.set_ylim((min_y,max_y))
+        self.line2, = self.ax2.plot([], [])
+        # end-effector jerk position error
+        self.ax3 = self.figure.add_subplot(2,2,3)
+        self.ax3.set_xlabel('Time (s)')
+        self.ax3.set_ylabel('Jerk position error (mm/s^3)')
+        self.ax3.set_xlim((0,max_x))
+        self.ax3.set_ylim((min_y,max_y))
+        self.line3, = self.ax3.plot([], [])
+        # end-effector  jerk orientation error
+        self.ax4 = self.figure.add_subplot(2,2,4)
+        self.ax4.set_xlabel('Time (s)')
+        self.ax4.set_ylabel('Jerk orientation error (deg)')
+        self.ax4.set_xlim((0,max_x))
+        self.ax4.set_ylim((min_y,max_y))
+        self.line4, = self.ax4.plot([], [])
+
+        # vector of data
+        self.time_data = []
+        self.ep_data = []
+        self.eo_data = []
+        self.dddep_data = []
+        self.dddeo_data = []
+        """
+        self.time_data.append(0)
+        self.ep_data.append(0)
+        self.eo_data.append(0)
+        self.dddep_data.append(0)
+        self.dddeo_data.append(0)
+        """
+        anim.FuncAnimation.__init__(self, self.figure, self._update_figure_, interval=interval, blit=True)
+
+
+    def _update_figure_(self, _):
+        self.line1.set_data(self.time_data, self.ep_data)
+        self.line2.set_data(self.time_data, self.eo_data)
+        self.line3.set_data(self.time_data, self.dddep_data)
+        self.line4.set_data(self.time_data, self.dddeo_data)    
+        return self.line1 , self.line2, self.line3, self.line4
+        
+    def update_data(self, msg):   
+        """
+        print(f"time: {msg.time}")
+        print(f"ep: {msg.ep}")        
+        print(f"eo: {msg.eo}")        
+        print(f"dddep: {msg.dddep}")        
+        print(f"dddeo: {msg.dddeo}")    
+        """   
+        self.time_data.append(msg.time)
+        self.ep_data.append(msg.ep)
+        self.eo_data.append(msg.eo)
+        self.dddep_data.append(msg.dddep)
+        self.dddeo_data.append(msg.dddeo)
+
+
+        
+class MainWindow(QWidget):
+    def __init__(self, parent=None):
+        super(MainWindow, self).__init__(parent)
+
+        # App main configuration: title and size
+        self.title = 'Journal: Custom RViz'
+        self.sg = QDesktopWidget().screenGeometry()
+        self.setWindowTitle(self.title)
+        self.setGeometry(0, 0, self.sg.width(), self.sg.height())
+
+        # App description: widgets and layouts
+        self.setLayout(QHBoxLayout())
+        self.rviz_layout = QVBoxLayout()
+        self.plots_layout = QVBoxLayout()
+
+        self.layout().addLayout(self.rviz_layout,2)
+        self.layout().addLayout(self.plots_layout,2)
+        
+        # configuration of RViz cameras
+        cam0 = RvizCamera(camera_id=0)
+        cam1 = RvizCamera(camera_id=1) 
+        self.rviz_layout.addWidget(cam0.frame)
+        self.rviz_layout.addWidget(cam1.frame)
+
+        # matplotlib figures
+        self.canvas = MplCanvas(self, dpi=100)
+        self.plots_layout.addWidget(self.canvas)      
+
+        # ros communication
+        rospy.init_node('interface_node')
+        #rospy.Subscriber("joint_states", JointState, self.update_figure)
+        self.sub = rospy.Subscriber("cartesian_pose_error", CartesianPoseError, self.topic_callback)
+
+    def topic_callback(self, msg):
+        self.canvas.update_data(msg)
+                
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    ex = MainWindow()
+    ex.show()
+    sys.exit(app.exec_())
