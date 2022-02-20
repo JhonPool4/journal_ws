@@ -174,24 +174,27 @@ amarker_ref     = FrameMarker()
 trajectory_type = rospy.get_param('/smc_node/trajectory')
 
 if  trajectory_type.split('_')[0] == 'dataset' and \
-    trajectory_type.split('_')[1] in str(range(1,7)):
-    #trajectory_type.split('_')[1][0] in ['1','2','3','4'] and \
-    #trajectory_type.split('_')[1][1] in ['r','l']:
+    trajectory_type.split('_')[1] in str(range(1,5)):
 
-    trajectories = ['Needle_Passing_D001.txt',
-                    'Suturing_E001.txt',
-                    'Needle_Passing_D003.txt',
-                    'Suturing_D005.txt',
-                    'Suturing_D003.txt',
-                    'Suturing_E003.txt']
+    datasets = [ 
+    'Needle_Passing_E004.txt', #s
+    'Knot_Tying_E003.txt', #s
+    'Knot_Tying_D001.txt', #s
+    'Knot_Tying_D003.txt'] #s
 
-    dataset_number = trajectory_type.split('_')[1]
-    robot_arm_data = 'l'
-    is_right_arm = True if robot_arm_data == 'r' else False
-    
+    arms = [
+            "l",#s
+            "r",#s
+            "l",#s
+            "r",#s
+            ]
+            
+    dataset_number = int(trajectory_type.split('_')[1]) - 1
+
+    fn = datasets[dataset_number]  
+    is_right_arm = True if arms[dataset_number] == 'r' else False
+
     dataset_folder = "dataset" 
-    fn = trajectories[int(dataset_number)-1]
-
     dataset_path = os.path.join(folder_assets, dataset_folder, fn)
 
     dr = DataReader(dataset_path)
@@ -202,7 +205,7 @@ if  trajectory_type.split('_')[0] == 'dataset' and \
 elif trajectory_type == 'circular':
     dataset_used = False
 else:
-    raise ValueError('Trajectory type {} is not valid. Choose only "circular" or "dataset_x [x: 1,2,3,4,5,6]'.format(trajectory_type))
+    raise ValueError('Trajectory type {} is not valid. Choose only "circular" or "dataset_x [x: 1,2,3,4]'.format(trajectory_type))
 
 # =======================================
 # 	Set home joint configuration of UR5

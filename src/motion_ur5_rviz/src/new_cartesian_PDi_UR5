@@ -117,8 +117,9 @@ rospy.init_node("pd_node")
 # Public in topic /joint_states	to send joint data		
 pub = rospy.Publisher('joint_states', JointState, queue_size=1000)
 # Loop rate (in Hz)
-rate 	= rospy.Rate(100)		# 100 [Hz]
-dt 		= 10e-3					# 10  [ms]
+freq = 30.0
+dt         = 1/freq                    # 33  [ms]
+rate     = rospy.Rate(freq)        # 100 [Hz]
 # object(message) type JointState
 jstate = JointState()
 
@@ -128,7 +129,7 @@ jstate = JointState()
 # Show a ball marker for current and desired position of robot' end-effector
 bmarker_des 	= BallMarker(color['GREEN'])
 bmarker_act  	= BallMarker(color['YELLOW'])
-
+amarker_ref     = FrameMarker()
 # ================================
 # 		    Trajectory
 # ================================
@@ -136,15 +137,26 @@ bmarker_act  	= BallMarker(color['YELLOW'])
 trajectory_type = rospy.get_param('/pd_node/trajectory')
 
 if  trajectory_type.split('_')[0] == 'dataset' and \
-    trajectory_type.split('_')[1][0] in ['1','2','3','4'] and \
-    trajectory_type.split('_')[1][1] in ['r','l']:
+    trajectory_type.split('_')[1] in str(range(1,5)):
 
-    dataset_number = trajectory_type.split('_')[1][0]
-    robot_arm_data = trajectory_type.split('_')[1][1]
-    is_right_arm = True if robot_arm_data == 'r' else False
-    
+    datasets = [ 
+    'Needle_Passing_E004.txt', #s
+    'Knot_Tying_E003.txt', #s
+    'Knot_Tying_D001.txt', #s
+    'Knot_Tying_D003.txt'] #s
+
+    arms = [
+            "l",#s
+            "r",#s
+            "l",#s
+            "r",#s
+            ]
+            
+    dataset_number = int(trajectory_type.split('_')[1]) - 1
+
+    fn = datasets[dataset_number]  
+    is_right_arm = True if arms[dataset_number] == 'r' else False    
     dataset_folder = "dataset" 
-    fn = "{}.txt".format(dataset_number)
 
     dataset_path = os.path.join(folder_assets, dataset_folder, fn)
 
@@ -156,7 +168,7 @@ if  trajectory_type.split('_')[0] == 'dataset' and \
 elif trajectory_type == 'circular':
     dataset_used = False
 else:
-    raise ValueError('Trajectory type {} is not valid. Choose only "circular" or "dataset_xy [x: 1,2,3,4 and y:r,l]".'.format(trajectory_type))
+    raise ValueError('Trajectory type {} is not valid. Choose only "circular" or "dataset_x [x: 1,2,3,4]".'.format(trajectory_type))
 
 # =======================================
 # 	Set home joint configuration of UR5
@@ -170,8 +182,8 @@ if dataset_used:
     p0 = x0[0:3]
     rpy0 = x0[3:6]
 
-    q0 = robot_tmp.inverse_kinematics_pose(x0, rpy2rot(rpy0), np.zeros(6)) # Initial joint conf for dataset
-
+    q0 = robot_tmp.inverse_kinematics_pose(p0, rpy2rot(rpy0), np.zeros(6), max_iter = 300) # Initial joint conf for dataset
+    q0 = np.arctan2(np.sin(q0), np.cos(q0))
 else:
     q0 = np.array([-0.22007212, -0.72670633, -4.72730825,  0.7416256,   1.57079633, -3.36166477]) # Center [0.5 +0.0 0.0]
 
@@ -351,16 +363,21 @@ df.to_csv(path, index=False)
 path_tmp = os.path.join(pwd, 'tmp.csv')
 df_tmp.to_csv(path_tmp, index=False)
 
+buffer_size = 20
+buf = 0
 while not rospy.is_shutdown():
     # desired values (cartesian space)
     if not dataset_used:
         p_des, dp_des, ddp_des, dddp_des = circular_trayectory_generator(t)
+        p_des, dp_des, ddp_des, dddp_des = np.array(p_des), np.array(dp_des), np.array(ddp_des), np.array(dddp_des)
         rpy_des = rot2rpy(R_des)
-
+        
     else:
-        x_des, dx_des, ddx_dex, dddx_des = dr.dataset_trajectory_generator()
+        x_des, dx_des, ddx_des, dddx_des = dr.dataset_trajectory_generator()
         p_des = x_des[0:3]
         rpy_des = x_des[3:6]
+        dp_des = dx_des[0:3]
+        ddp_des = ddx_des[0:3]
 
     # reference position at Cartesian space
     p_ref, dp_ref, ddp_ref = reference_trajectory(p_des, p_ref, dp_ref, dt)
@@ -371,8 +388,13 @@ while not rospy.is_shutdown():
 
     if dataset_used:
         # Trajectory Smoothing using Kalman Filter 
-        dp_ref, ddp_ref, _ = kf_p_ref.update(dp_ref, ddp_ref)
-        drpy_ref, ddrpy_ref, _ = kf_rpy_ref.update(drpy_ref, ddrpy_ref)
+        buf += 1
+        if buf > buffer_size:
+            p_ref, dp_ref, _ = kf_p_ref.update(p_ref, dp_ref)
+            rpy_ref, drpy_ref, _ = kf_rpy_ref.update(rpy_ref, drpy_ref)
+        else:
+            _, _, _ = kf_p_ref.update(p_ref, dp_ref)
+            _, _, _ = kf_rpy_ref.update(rpy_ref, drpy_ref)
 
 
     R_ref = rpy2rot(rpy_ref)
@@ -441,7 +463,12 @@ while not rospy.is_shutdown():
     # Ball marker
     bmarker_des.xyz(p_ref[0:3])	# Green
     bmarker_act.xyz(p_med[0:3])	# Yellow          
+    amarker_ref.xyz(p_ref[0:3])
+    amarker_ref.rotation(R_ref)
 
+    bmarker_act.publish()
+    bmarker_des.publish()
+    amarker_ref.publish()
     # ================
     # 	optimization 
     # ================

@@ -10,6 +10,7 @@ from labpythonlib.lab_markers import *
 
 class DataReader:
     def __init__(self, path, dt = 0.01):
+        
         self.datapath = path
         self.xs = np.array([])
         self.dxs = np.array([])
@@ -55,9 +56,9 @@ class DataReader:
             # iwx, iwy, iwz = 73,74, 75
 
         for i in np.arange(nrows):
-            x = df.iloc[i, ix - 1] #- 0.6#- 0.4#+ (right_arm)*(-0.1) + (1 - right_arm)*(0.1) #+0.0#
-            y = df.iloc[i, iy - 1] + 0.5 #+ (right_arm)*(-0.45) + (1 - right_arm)*(0.45) #+0.2#
-            z = df.iloc[i, iz - 1] - 0.2 #+ 0.8 #+0.5#
+            x = df.iloc[i, ix - 1] # 0.4#- 0.6#- 0.4#+ (right_arm)*(-0.1) + (1 - right_arm)*(0.1) #+0.0#
+            y = df.iloc[i, iy - 1] - 0.5 #+ (right_arm)*(-0.45) + (1 - right_arm)*(0.45) #+0.2#
+            z = df.iloc[i, iz - 1] - 0.1 #+ 0.8 #+0.5#
 
             R = df.iloc[i, iRs-1:iRe].to_numpy().reshape(3,3)
             rpy = rot2rpy(R)
