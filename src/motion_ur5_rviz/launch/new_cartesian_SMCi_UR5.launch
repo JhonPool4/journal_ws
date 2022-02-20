@@ -37,8 +37,8 @@
         <param  name="real_ur5_urdf" value="$(find ur5_description)/urdf/ur5_uncertainty_100.urdf"/>       
     </group>     
 
-    <!--Run rosnode with PD control method-->
-    <node name="smc_node" output="screen" type="new_cartesian_SMCi_UR5" pkg="motion_ur5_rviz" >
+    <!--Run rosnode with SMC control method  output="screen"--> 
+    <node name="smc_node"  type="new_cartesian_SMCi_UR5" pkg="motion_ur5_rviz" >
         <param name="uncertainty" value="$(arg uncertainty)"/>  
         <param name="alpha" value="$(arg alpha)" />
         <param name="gamma" value="$(arg gamma)" />
