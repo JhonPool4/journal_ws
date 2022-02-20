@@ -1,16 +1,17 @@
 <launch>
     <!--input arguments-->
     <arg name="uncertainty" default="0.0"/>
-    <arg name="alpha" default="0.0" />
+    <arg name="alpha" default="0.005" />
     <arg name="gamma" default="0.9" />
     <arg name="beta" default="0.1"/>
     <arg name="sim_time" default="50" />
     <arg name="max_pos_error" default="0.5" /> <!--info="milimeters"-->
     <arg name="max_ori_error" default="2" /> <!--info="degrees"-->
+    <arg name="max_jerk" default="1" /> 
     <arg name="record_rosbag" default="false"/>
     <arg name="exp" default="exp1"/>
     <arg name="control_method" value="SMC"/>
-    <arg name="trajectory" default="circular"/>
+    <arg name="trajectory" default="circular"/>  <!-- circular or dataset_# (#:{1,2,3,4,5,6}-->
 
     <!-- Load nominal robot model-->
     <param name="nominal_ur5_urdf" value="$(find ur5_description)/urdf/ur5_uncertainty_0.urdf"/>
@@ -46,9 +47,11 @@
         <param name="sim_time" value="$(arg sim_time)"/>
         <param name="max_pos_error" value="$(arg max_pos_error)" />
         <param name="max_ori_error" value="$(arg max_ori_error)" /> 
+        <param name="max_jerk" value="$(arg max_jerk)" /> 
         <param name="data_path" value="$(find motion_ur5_rviz)/experiments/$(arg exp)/data/$(arg control_method)/$(arg trajectory)"/>
         <param name="image_path" value="$(find motion_ur5_rviz)/experiments/$(arg exp)/images/$(arg control_method)/$(arg trajectory)"/>
         <param name="video_path" value="$(find motion_ur5_rviz)/experiments/$(arg exp)/videos/$(arg control_method)/$(arg trajectory)"/>
+        <param name="trajectory" value="$(arg trajectory)" /> 
     </node>
 
     <!--Publish robot state: TF transformations-->

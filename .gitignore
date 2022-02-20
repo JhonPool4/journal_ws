@@ -6,5 +6,15 @@ src/motion_ur5_rviz/src/__pycache__/
 
 src/motion_ur5_gazebo/package_commads.txt
 src/motion_ur5_gazebo/src/__pycache__/ 
+
+src/labpythonlib/dist/
+src/labpythonlib/labpythonlib.egg-info/
+
+/install
+/src/rbdl-orb
+
+
+*.pyc
+src/motion_ur5_rviz/src/utils/*.pyc
 install/
 src/rbdl

@@ -3,25 +3,28 @@
 %               gains and optimized gains.
 clc, clear all, close all;
 
-pwd = '/home/jhon/catkin_ws/journal_ws/src/motion_ur5_rviz/';
+%pwd = '/home/jhon/catkin_ws/journal_ws/src/motion_ur5_rviz/';
+pwd = '/home/emanuelsamir/Documentos/dev/concytec/journal_ws/src/motion_ur5_rviz/';
 control_method = 'SMCi'; % change: (i) PDi or SMCi 
 trajectory_type  = '/circular_traj/'; % change to database
-%file_name_1 = 'cartesian_KP_9_KD_6_alpha_0.0_beta_0.1_gamma_0.9_delta_0.1_t_50.csv';
-%file_name_2 = 'cartesian_KP_9_KD_6_alpha_0.5_beta_0.1_gamma_0.9_delta_0.1_t_50.csv';
-file_name_1 = 'cartesian_L5_K_1_alpha_0.0_beta_0.1_gamma_0.9_delta_0.1_t_50.csv';
-file_name_2 = 'cartesian_L5_K_1_alpha_0.01_beta_0.1_gamma_0.9_delta_0.1_t_50.csv';
+
+
+file_name_1 = 'cartesian_L_5_K_1_alpha_0.0_beta_0.1_gamma_0.9_delta_0.1_t_30_uncertainty_0.1.csv';
+file_name_2 = 'cartesian_L_5_K_1_alpha_0.01_beta_0.1_gamma_0.9_delta_0.1_t_30_uncertainty_0.1.csv';
+%file_name_1 = 'cartesian_L5_K_1_alpha_0.0_beta_0.1_gamma_0.9_delta_0.1_t_50.csv';
+%file_name_2 = 'cartesian_L5_K_1_alpha_0.01_beta_0.1_gamma_0.9_delta_0.1_t_50.csv';
 file_path = fullfile(pwd, 'data/',control_method, trajectory_type);
 image_path = fullfile(pwd,'document/images/', control_method, trajectory_type);
 
 % read table
-data_1 = readtable(fullfile(file_path, file_name_1),'PreserveVariableNames',true);
-data_2 = readtable(fullfile(file_path, file_name_2),'PreserveVariableNames',true);
+data_1 = readtable(fullfile(file_path, file_name_1));%,'PreserveVariableNames',true);
+data_2 = readtable(fullfile(file_path, file_name_2));%,'PreserveVariableNames',true);
 
 % time variables
 time = data_1.t;
 t_start = 1;
 t_step  = 5;
-t_end   = 3001;%length(time);
+t_end   = 3000;%length(time);
 t_dt = (time(t_end) - time(t_start))/3;
       
 % get articular data

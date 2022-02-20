@@ -3,17 +3,22 @@
 %               gains and optimized gains.
 clc, clear all, close all;
 
-pwd = '/home/jhon/catkin_ws/journal_ws/src/motion_ur5_rviz/';
+%pwd = '/home/jhon/catkin_ws/journal_ws/src/motion_ur5_rviz/';
+pwd = '/home/emanuelsamir/Documentos/dev/concytec/journal_ws/src/motion_ur5_rviz/';
+
 control_method = 'SMCi'; % change: (i) PDi or SMCi 
 trajectory_type  = '/circular_traj/'; % change to database
-file_name_1 = 'articular_lambda_5_k_1_alpha_[0 0]_beta_0.1_gamma_0.9_t_50.csv';
-file_name_2 = 'articular_lambda_5_k_1_alpha_[0.01 0.01]_beta_0.1_gamma_0.9_t_50.csv';
+%file_name_1 = 'articular_lambda_5_k_1_alpha_[0 0]_beta_0.1_gamma_0.9_t_50.csv';
+%file_name_2 = 'articular_lambda_5_k_1_alpha_[0.01 0.01]_beta_0.1_gamma_0.9_t_50.csv';
+
+file_name_1 = 'cartesian_L_5_K_1_alpha_0.0_beta_0.1_gamma_0.9_delta_0.1_t_30_uncertainty_0.1.csv';
+file_name_2 = 'cartesian_L_5_K_1_alpha_0.01_beta_0.1_gamma_0.9_delta_0.1_t_30_uncertainty_0.1.csv';
 file_path = fullfile(pwd, 'data/',control_method, trajectory_type);
 image_path = fullfile(pwd,'document/images/', control_method, trajectory_type);
 
 % read table
-data_1 = readtable(fullfile(file_path, file_name_1),'PreserveVariableNames',true);
-data_2 = readtable(fullfile(file_path, file_name_2),'PreserveVariableNames',true);
+data_1 = readtable(fullfile(file_path, file_name_1));%,'PreserveVariableNames',true);
+data_2 = readtable(fullfile(file_path, file_name_2));%,'PreserveVariableNames',true);
 
 % time variables
 time = data_1.t;
@@ -66,7 +71,7 @@ Lgnd.Position(2) = 0.95;
 % Save image
 file_name     = fullfile(image_path, 'joint_position_error');
 saveas(gcf,file_name,'epsc')  
-
+    
 
 %% joint velocity
 clc, close all;

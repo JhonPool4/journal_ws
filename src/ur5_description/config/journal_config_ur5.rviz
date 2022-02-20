@@ -65,7 +65,7 @@ Visualization Manager:
       Collision Enabled: false
       Enabled: true
       Links:
-        All Links Enabled: false
+        All Links Enabled: true
         Expand Joint Details: false
         Expand Link Details: false
         Expand Tree: false
@@ -83,7 +83,7 @@ Visualization Manager:
           Alpha: 1
           Show Axes: true
           Show Trail: false
-          Value: false
+          Value: true
         forearm_link:
           Alpha: 1
           Show Axes: false
@@ -133,7 +133,6 @@ Visualization Manager:
       Marker Topic: /visualization_marker
       Name: Marker
       Namespaces:
-        arrow_markers: true
         ball_markers: true
       Queue Size: 100
       Value: true

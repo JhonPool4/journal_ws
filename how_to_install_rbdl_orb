@@ -1,0 +1,35 @@
+# -----------------------
+# How to isntall RBDL-ORB 
+# -----------------------
+
+# Cloning repository
+git clone --recursive https://github.com/ORB-HD/rbdl-orb
+
+# Create build directory
+mkdir rbdl-buidl/; cd rbdl-build/
+
+# Set cmake (remember to modify workspace)
+cmake -D CMAKE_BUILD_TYPE=Release .. -DRBDL_BUILD_PYTHON_WRAPPER=ON -DCMAKE_INSTALL_PREFIX=~/catkin_ws/rbdl_ws/install -DRBDL_BUILD_ADDON_URDFREADER=ON -DRBDL_USE_ROS_URDF_LIBRARY=OFF -Wno-dev -Wcpp
+
+# Generate libraries
+make
+
+# Install libraries
+make install
+
+# Create directory to save the rbdl library (rbdl.so)
+cd ~/catkin_ws/rbdl_ws/
+mkdir -p install/lib/
+
+# Move rbdl.so from build/python to install/lib/
+cd ~/catkin_ws/rbdl_ws/install/lib/                                 # Change directory
+cp ~/catkin_ws/rbdl_ws/src/rbdl-orb/rbdl-buidl/python/rbdl.so .
+
+# Set LD_LIBRARY_PATH (remember to modify workspace)
+export LD_LIBRARY_PATH=~/catkin_ws/rbdl_ws/install/lib:$LD_LIBRARY_PATH
+
+# Set PYTHONPATH (remember to modify workspace)
+export PYTHONPATH=~/catkin_ws/rbdl_ws/install/lib/python/:$PYTHONPATH
+
+
+

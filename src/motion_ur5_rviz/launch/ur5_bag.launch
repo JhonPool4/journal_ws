@@ -5,7 +5,6 @@
     <arg name="uncertainty" />
     <arg name="alpha" />
     <arg name="sim_time"/>
-    <arg name="trajectory"/>
 
     <!--Open Rviz with config--> 
     <arg name="config_file" value="$(find ur5_description)/config/journal_config_ur5.rviz"/>
@@ -19,6 +18,6 @@
 
     <!-- Publish robot states from rosbag  --> 
     <node pkg="rosbag" type="play" name="rosbag" 
-          args="$(find motion_ur5_rviz)/experiments/$(arg experiment)/bags/$(arg control_method)/$(arg trajectory)/uncertainty_$(arg uncertainty)_alpha_$(arg alpha)_time_$(arg sim_time).bag"/>
+          args="$(find motion_ur5_rviz)/experiments/$(arg experiment)/bags/$(arg control_method)/circular/uncertainty_$(arg uncertainty)_alpha_$(arg alpha)_time_$(arg sim_time).bag"/>
     
 </launch>
