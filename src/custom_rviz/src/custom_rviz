@@ -48,8 +48,7 @@ class RvizCamera():
 class MplCanvas(FigureCanvas, anim.FuncAnimation):
 
     def __init__(self, parent=None, width=5, height=4, dpi=100, interval=10):
-        # main figure
-
+        # configuration of figures
         font = {'family':'serif',
                 'weight' : 'normal',
                 'style': 'normal',
@@ -66,35 +65,35 @@ class MplCanvas(FigureCanvas, anim.FuncAnimation):
         plt.rc('font', **font)       
         plt.rc('lines', **lines)
         plt.rc('axes', **axes)
-        max_x = 10
+        # axis limits
+        max_x = 10 # simulation time
         min_y = -0.03
         max_y = 0.03
-        #self.figure = plt.figure(figsize=(12,5), dpi=dpi)#
+        # create figure
         self.figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
         FigureCanvas.__init__(self, self.figure)
-        #FigureCanvas.__init__(self, Figure())
-        # position error
+        # end-effector position error
         self.ax1 = self.figure.add_subplot(2,2,1)
         self.ax1.set_xlabel('Time (s)')
         self.ax1.set_ylabel('Position error (mm)')
         self.ax1.set_xlim((0,max_x))
         self.ax1.set_ylim((min_y,max_y))
         self.line1, = self.ax1.plot([], [])
-        # orientation error
+        # end-effector orientation error
         self.ax2 = self.figure.add_subplot(2,2,2)
         self.ax2.set_xlabel('Time (s)')
         self.ax2.set_ylabel('Orientation error (deg)')
         self.ax2.set_xlim((0,max_x))
         self.ax2.set_ylim((min_y,max_y))
         self.line2, = self.ax2.plot([], [])
-        # jerk position error
+        # end-effector jerk position error
         self.ax3 = self.figure.add_subplot(2,2,3)
         self.ax3.set_xlabel('Time (s)')
         self.ax3.set_ylabel('Jerk position error (mm/s^3)')
         self.ax3.set_xlim((0,max_x))
         self.ax3.set_ylim((min_y,max_y))
         self.line3, = self.ax3.plot([], [])
-        # jerk orientation error
+        # end-effector  jerk orientation error
         self.ax4 = self.figure.add_subplot(2,2,4)
         self.ax4.set_xlabel('Time (s)')
         self.ax4.set_ylabel('Jerk orientation error (deg)')
@@ -108,13 +107,13 @@ class MplCanvas(FigureCanvas, anim.FuncAnimation):
         self.eo_data = []
         self.dddep_data = []
         self.dddeo_data = []
-
+        """
         self.time_data.append(0)
         self.ep_data.append(0)
         self.eo_data.append(0)
         self.dddep_data.append(0)
         self.dddeo_data.append(0)
-
+        """
         anim.FuncAnimation.__init__(self, self.figure, self._update_figure_, interval=interval, blit=True)
 
 
@@ -165,7 +164,7 @@ class MainWindow(QWidget):
         self.rviz_layout.addWidget(cam0.frame)
         self.rviz_layout.addWidget(cam1.frame)
 
-        # Plot
+        # matplotlib figures
         self.canvas = MplCanvas(self, dpi=100)
         self.plots_layout.addWidget(self.canvas)      
 
