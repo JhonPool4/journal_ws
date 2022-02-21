@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 Useful commands:
@@ -31,7 +31,9 @@ import os 								# Manipulate path names
 import pandas as pd 					# Save data
 from sensor_msgs.msg import JointState 	# To send angular position to robot
 from custom_rviz.msg import CartesianPoseError # To send end-effector pose error
-
+from custom_rviz.msg import CartesianJerkError 
+from custom_rviz.msg import EffortControl 
+from custom_rviz.msg import LearningRate 
 from labpythonlib.lab_functions import *
 from labpythonlib.lab_markers import *	
 from utils.kalman import *
@@ -116,9 +118,17 @@ df_tmp = pd.DataFrame(columns=column_tmp,dtype=object)
 # Create a nodo: PD_controller
 rospy.init_node("pd_node")
 # Public in topic /joint_states	to send joint data		
-pub = rospy.Publisher('joint_states', JointState, queue_size=1000)
-pub_pose_error = rospy.Publisher('cartesian_pose_error', CartesianPoseError, queue_size=1000)
+pub = rospy.Publisher('joint_states', JointState, queue_size=100)
+pub_pose_error = rospy.Publisher('CartesianPoseError', CartesianPoseError, queue_size=100)
+pub_jerk_error = rospy.Publisher('CartesianJerkError', CartesianJerkError, queue_size=100)
+pub_effort_control = rospy.Publisher('EffortControl', EffortControl, queue_size=100)
+pub_learning_rate = rospy.Publisher('LearningRate', LearningRate, queue_size=100)
+
 pose_error = CartesianPoseError()
+jerk_error = CartesianJerkError()
+effort_control = EffortControl()
+learning_rate = LearningRate()
+
 # Loop rate (in Hz)
 freq = 30.0
 dt         = 1/freq                    # 33  [ms]
@@ -456,6 +466,11 @@ while not rospy.is_shutdown():
 
     axis_angle_e = axisangle_error(R_ref, R_med)  
 
+    # new learning rate
+    # agregar función por partes
+    alpha2 = (alpha/0.25)*(1/(1+np.exp(-p_e*2)))*(1- (1/(1+np.exp(-p_e*2))))
+    #alpha2 = alpha + 1-1/(1+np.exp(-x+4))
+
     # Publish message: joint states
     jstate.header.stamp = rospy.Time.now()
     jstate.name 		= jnames			# Joints position name
@@ -464,11 +479,31 @@ while not rospy.is_shutdown():
     pub.publish(jstate)
     # Publish message: end-effector pose error
     pose_error.time = t
-    pose_error.ep = np.linalg.norm(p_e[0:3])
-    pose_error.eo = np.linalg.norm(p_e[3:6])
-    pose_error.dddep = np.linalg.norm(dp_e[0:3]) # change
-    pose_error.dddeo = np.linalg.norm(dp_e[3:6]) # change
+    pose_error.pos_x = p_e[0]#np.linalg.norm(p_e[0:3])
+    pose_error.pos_y = p_e[1]#np.linalg.norm(p_e[3:6])
+    pose_error.pos_z = p_e[2]#np.linalg.norm(dddp_e_kf[0:3])
+    pose_error.ori_x = p_e[3]#np.linalg.norm(dddp_e_kf[3:6]) 
+    pose_error.ori_y = p_e[4]#u 
+    pose_error.ori_z = p_e[5]#alpha2
     pub_pose_error.publish(pose_error)    
+    
+    jerk_error.time = t
+    jerk_error.dddx = dddp_e_kf[0]
+    jerk_error.dddy = dddp_e_kf[1]
+    jerk_error.dddz = dddp_e_kf[2]
+    jerk_error.ddw_x = dddp_e_kf[3] 
+    jerk_error.ddw_y = dddp_e_kf[4] 
+    jerk_error.ddw_z = dddp_e_kf[5]
+    pub_jerk_error.publish(jerk_error)
+
+    effort_control.time = t
+    effort_control.effort_control = u
+    pub_effort_control.publish(effort_control)
+
+    learning_rate.time = t
+    learning_rate.alpha = alpha2
+    pub_learning_rate.publish(learning_rate)
+    """ """
 
     # Ball marker
     bmarker_des.xyz(p_ref[0:3])	# Green
@@ -523,26 +558,11 @@ while not rospy.is_shutdown():
     convergence_jerk = 0.001 * max_jerk * np.ones(6)
     crit_j = 1*(abs(dddp_e_kf)>=convergence_jerk)
 
-    # Clip
-    dJ_KP = np.clip(dJ_KP, -0.02, 0.02)
-    dJ_KD = np.clip(dJ_KD, -0.02, 0.02)
-
     # Upgrade control gains
-    KP = KP - alpha*crit_p*crit_j*dJ_KP 	#[6x1]  
-    KD = KD - alpha*crit_p*crit_j*dJ_KD 	#[6x1]	    
+    KP = KP - alpha2*crit_p*crit_j*dJ_KP 	#[6x1]  
+    KD = KD - alpha2*crit_p*crit_j*dJ_KD 	#[6x1]	    
 
-
-
-    # Print
-    if (np.round(t/dt,1)%10==0):
-        print("t: ", np.round(t,2))
-        print("crit_p: ", crit_p)
-        print("p_e", 1000*p_e[0:3])
-        print("o_e", np.rad2deg(p_e[3:6]))
-        print("KP: ", KP)
-        print("KD: ", KD) 
-        print("\n")    
-
+    """
     # Append data
     row = 	tl(np.array([t])) +\
             tl(p_med)+tl(dp_med)+tl(ddp_med)+tl(dddp_med) +\
@@ -554,6 +574,7 @@ while not rospy.is_shutdown():
             tl(KD) +\
             tl(u)  +\
             tl(np.array([c]))
+
     # Fix for redimensionality
     row = tl(np.expand_dims(np.array(row), axis = 1))
 
@@ -572,7 +593,7 @@ while not rospy.is_shutdown():
 
     df_row_tmp = pd.DataFrame.from_dict(dict(zip(column_tmp, row_tmp)))
     df_tmp.append(df_row_tmp, sort = False).to_csv(path_tmp, index=False, mode = 'a', header=False)
-
+    """
 
     # Update
     t = t + dt
