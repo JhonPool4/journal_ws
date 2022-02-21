@@ -51,6 +51,9 @@ find_package(catkin REQUIRED COMPONENTS
  add_message_files(
    FILES
    CartesianPoseError.msg
+   CartesianJerkError.msg
+   EffortControl.msg
+   LearningRate.msg
  )
 ## Generate services in the 'srv' folder
 # add_service_files(
