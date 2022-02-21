@@ -1,0 +1,378 @@
+#!/usr/bin/env python3
+
+# ROS libraries and messages
+import rospy, os
+from custom_rviz.msg import CartesianPoseError
+from custom_rviz.msg import CartesianJerkError
+from custom_rviz.msg import EffortControl
+from custom_rviz.msg import LearningRate
+# PyQT libraries
+import sys
+
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
+from PyQt5.QtWidgets import *
+
+# Matplotlib libraries
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+import matplotlib.animation as anim
+import numpy as np
+
+dir_name = os.path.dirname(__file__)
+
+# main figure
+
+font = {'size'   : '20'}
+lines={'linewidth': '1',
+        'linestyle': '-'}                
+axes = {'labelsize': 'large',
+        'titlesize': 'large',
+        'linewidth': '1',
+        'grid': 'True',
+        'facecolor': 'white',
+        'edgecolor': 'k'}
+# pass in the dict as kwargs   
+plt.rc('font', **font)       
+plt.rc('lines', **lines)
+plt.rc('axes', **axes)
+#plt.rcParams['text.usetex'] = True    
+
+class PlotPoseError(FigureCanvas, anim.FuncAnimation):
+
+    def __init__(self, parent=None, width=5, height=4, dpi=100, interval=10):
+
+        # axis limits
+        max_x = rospy.get_param('/pd_node/sim_time') 			 # @param maximum simulation time [s]
+        #self.figure = plt.figure()
+        self.figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
+        FigureCanvas.__init__(self, self.figure)
+        
+        # position error
+        self.ax1 = self.figure.add_subplot(3,2,1)
+        self.ax1.set_xlabel('Time (s)')
+        self.ax1.set_ylabel('x (mm)')
+        self.ax1.set_xlim((0,max_x))
+        self.line1, = self.ax1.plot([], [])
+
+        self.ax3 = self.figure.add_subplot(3,2,3)
+        self.ax3.set_xlabel('Time (s)')
+        self.ax3.set_ylabel('y (mm)')
+        self.ax3.set_xlim((0,max_x))
+        self.line3, = self.ax3.plot([], [])
+        
+        self.ax5 = self.figure.add_subplot(3,2,5)
+        self.ax5.set_xlabel('Time (s)')
+        self.ax5.set_ylabel('z (mm)')
+        self.ax5.set_xlim((0,max_x))
+        self.line5, = self.ax5.plot([], [])     
+
+        # orientation error
+        self.ax2 = self.figure.add_subplot(3,2,2)
+        self.ax2.set_xlabel('Time (s)')
+        self.ax2.set_ylabel('roll (deg)')
+        self.ax2.set_xlim((0,max_x))
+        self.line2, = self.ax2.plot([], [])
+
+        self.ax4 = self.figure.add_subplot(3,2,4)
+        self.ax4.set_xlabel('Time (s)')
+        self.ax4.set_ylabel('pitch (deg)')
+        self.ax4.set_xlim((0,max_x))
+        self.line4, = self.ax4.plot([], [])
+
+        self.ax6 = self.figure.add_subplot(3,2,6)
+        self.ax6.set_xlabel('Time (s)')
+        self.ax6.set_ylabel('yaw (deg)')
+        self.ax6.set_xlim((0,max_x))
+        self.line6, = self.ax6.plot([], [])
+
+        # data
+        self.time_data = []
+        self.pos_x_data = []
+        self.pos_y_data = []
+        self.pos_z_data = []  
+        self.ori_x_data = []
+        self.ori_y_data = []
+        self.ori_z_data = []
+
+        anim.FuncAnimation.__init__(self, self.figure, self.update_figure, interval=interval, blit=False)
+
+    def update_figure(self, _):
+        
+        self.line1.set_data(self.time_data, self.pos_x_data)
+        self.line3.set_data(self.time_data, self.pos_y_data)
+        self.line5.set_data(self.time_data, self.pos_z_data)
+
+        self.line2.set_data(self.time_data, self.ori_x_data)
+        self.line4.set_data(self.time_data, self.ori_y_data)
+        self.line6.set_data(self.time_data, self.ori_z_data)    
+        
+        return self.line1, self.line2, self.line3, self.line4, self.line5, self.line6
+        
+    def update_data(self, msg):   
+        # get data from topic
+        self.time_data.append(msg.time)
+        self.pos_x_data.append(100*msg.pos_x)
+        self.pos_y_data.append(100*msg.pos_y)
+        self.pos_z_data.append(100*msg.pos_z)  
+        self.ori_x_data.append(np.rad2deg(msg.ori_x))
+        self.ori_y_data.append(np.rad2deg(msg.ori_y))
+        self.ori_z_data.append(np.rad2deg(msg.ori_z))
+
+        # updating axes
+        self.ax1.set_ylim((min(self.pos_x_data),max(self.pos_x_data)))        
+        self.ax3.set_ylim((min(self.pos_y_data),max(self.pos_y_data)))
+        self.ax5.set_ylim((min(self.pos_z_data),max(self.pos_z_data)))
+
+        self.ax2.set_ylim((min(self.ori_x_data),max(self.ori_x_data)))
+        self.ax4.set_ylim((min(self.ori_y_data),max(self.ori_y_data)))
+        self.ax6.set_ylim((min(self.ori_z_data),max(self.ori_z_data)))
+        
+
+
+class PlotJerkError(FigureCanvas, anim.FuncAnimation):
+
+    def __init__(self, parent=None, width=5, height=4, dpi=100, interval=10):
+
+        # axis limits
+        max_x = rospy.get_param('/pd_node/sim_time') 			 # @param maximum simulation time [s]
+        #self.figure = plt.figure()
+        self.figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
+        FigureCanvas.__init__(self, self.figure)
+        
+        # position error
+        self.ax1 = self.figure.add_subplot(3,2,1)
+        self.ax1.set_xlabel('Time (s)')
+        self.ax1.set_ylabel('x (mm)')
+        self.ax1.set_xlim((0,max_x))
+        self.line1, = self.ax1.plot([], [])
+
+        self.ax3 = self.figure.add_subplot(3,2,3)
+        self.ax3.set_xlabel('Time (s)')
+        self.ax3.set_ylabel('y (mm)')
+        self.ax3.set_xlim((0,max_x))
+        self.line3, = self.ax3.plot([], [])
+        
+        self.ax5 = self.figure.add_subplot(3,2,5)
+        self.ax5.set_xlabel('Time (s)')
+        self.ax5.set_ylabel('z (mm)')
+        self.ax5.set_xlim((0,max_x))
+        self.line5, = self.ax5.plot([], [])     
+
+        # orientation error
+        self.ax2 = self.figure.add_subplot(3,2,2)
+        self.ax2.set_xlabel('Time (s)')
+        self.ax2.set_ylabel('roll (deg)')
+        self.ax2.set_xlim((0,max_x))
+        self.line2, = self.ax2.plot([], [])
+
+        self.ax4 = self.figure.add_subplot(3,2,4)
+        self.ax4.set_xlabel('Time (s)')
+        self.ax4.set_ylabel('pitch (deg)')
+        self.ax4.set_xlim((0,max_x))
+        self.line4, = self.ax4.plot([], [])
+
+        self.ax6 = self.figure.add_subplot(3,2,6)
+        self.ax6.set_xlabel('Time (s)')
+        self.ax6.set_ylabel('yaw (deg)')
+        self.ax6.set_xlim((0,max_x))
+        self.line6, = self.ax6.plot([], [])
+
+        # data
+        self.time_data = []
+        self.dddx_data = []
+        self.dddy_data = []
+        self.dddz_data = []  
+        self.ddw_x_data = []
+        self.ddw_y_data = []
+        self.ddw_z_data = []
+
+        anim.FuncAnimation.__init__(self, self.figure, self.update_figure, interval=interval, blit=False)
+
+    def update_figure(self, _):
+        
+        self.line1.set_data(self.time_data, self.dddx_data)
+        self.line3.set_data(self.time_data, self.dddy_data)
+        self.line5.set_data(self.time_data, self.dddz_data)
+
+        self.line2.set_data(self.time_data, self.ddw_x_data)
+        self.line4.set_data(self.time_data, self.ddw_y_data)
+        self.line6.set_data(self.time_data, self.ddw_z_data)    
+        
+        return self.line1, self.line2, self.line3, self.line4, self.line5, self.line6
+        
+    def update_data(self, msg):   
+        # get data from topic
+        self.time_data.append(msg.time)
+        self.dddx_data.append(100*msg.dddx)
+        self.dddy_data.append(100*msg.dddy)
+        self.dddz_data.append(100*msg.dddz)  
+        self.ddw_x_data.append(np.rad2deg(msg.ddw_x))
+        self.ddw_y_data.append(np.rad2deg(msg.ddw_y))
+        self.ddw_z_data.append(np.rad2deg(msg.ddw_z))
+
+        # updating axes
+        self.ax1.set_ylim((min(self.dddx_data),max(self.dddx_data)))        
+        self.ax3.set_ylim((min(self.dddy_data),max(self.dddy_data)))
+        self.ax5.set_ylim((min(self.dddz_data),max(self.dddz_data)))
+
+        self.ax2.set_ylim((min(self.ddw_x_data),max(self.ddw_x_data)))
+        self.ax4.set_ylim((min(self.ddw_y_data),max(self.ddw_y_data)))
+        self.ax6.set_ylim((min(self.ddw_z_data),max(self.ddw_z_data)))
+
+class PlotEffortControl(FigureCanvas, anim.FuncAnimation):
+
+    def __init__(self, parent=None, width=5, height=4, dpi=100, interval=10):
+
+        # axis limits
+        max_x = rospy.get_param('/pd_node/sim_time') 			 # @param maximum simulation time [s]
+        #self.figure = plt.figure()
+        self.figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
+        FigureCanvas.__init__(self, self.figure)
+        
+        # position error
+        self.ax1 = self.figure.add_subplot(3,2,1)
+        self.ax1.set_xlabel('Time (s)')
+        self.ax1.set_ylabel('u1 (N.m)')
+        self.ax1.set_xlim((0,max_x))
+        self.line1, = self.ax1.plot([], [])
+
+        self.ax2 = self.figure.add_subplot(3,2,2)
+        self.ax2.set_xlabel('Time (s)')
+        self.ax2.set_ylabel('u2 (N.m)')
+        self.ax2.set_xlim((0,max_x))
+        self.line2, = self.ax2.plot([], [])
+
+        self.ax3 = self.figure.add_subplot(3,2,3)
+        self.ax3.set_xlabel('Time (s)')
+        self.ax3.set_ylabel('u3 (N.m)')
+        self.ax3.set_xlim((0,max_x))
+        self.line3, = self.ax3.plot([], [])
+
+        self.ax4 = self.figure.add_subplot(3,2,4)
+        self.ax4.set_xlabel('Time (s)')
+        self.ax4.set_ylabel('u4 (N.m)')
+        self.ax4.set_xlim((0,max_x))
+        self.line4, = self.ax4.plot([], [])
+
+        self.ax5 = self.figure.add_subplot(3,2,5)
+        self.ax5.set_xlabel('Time (s)')
+        self.ax5.set_ylabel('u5 (N.m)')
+        self.ax5.set_xlim((0,max_x))
+        self.line5, = self.ax5.plot([], [])     
+
+
+        self.ax6 = self.figure.add_subplot(3,2,6)
+        self.ax6.set_xlabel('Time (s)')
+        self.ax6.set_ylabel('u6 (N.m)')
+        self.ax6.set_xlim((0,max_x))
+        self.line6, = self.ax6.plot([], [])
+
+        # data
+        self.time_data = []
+        self.u1_data = []
+        self.u2_data = []
+        self.u3_data = []  
+        self.u4_data = []
+        self.u5_data = []
+        self.u6_data = []
+
+        anim.FuncAnimation.__init__(self, self.figure, self.update_figure, interval=interval, blit=False)
+
+    def update_figure(self, _):
+        
+        self.line1.set_data(self.time_data, self.u1_data)
+        self.line2.set_data(self.time_data, self.u2_data)
+        self.line3.set_data(self.time_data, self.u3_data)
+        self.line4.set_data(self.time_data, self.u4_data)
+        self.line5.set_data(self.time_data, self.u5_data)
+        self.line6.set_data(self.time_data, self.u6_data)    
+        
+        return self.line1, self.line2, self.line3, self.line4, self.line5, self.line6
+        
+    def update_data(self, msg):   
+        # get data from topic
+        self.time_data.append(msg.time)
+        self.u1_data.append(msg.effort_control[0])
+        self.u2_data.append(msg.effort_control[1])
+        self.u3_data.append(msg.effort_control[2])  
+        self.u4_data.append(msg.effort_control[3])
+        self.u5_data.append(msg.effort_control[4])
+        self.u6_data.append(msg.effort_control[5])
+
+        # updating axes
+        self.ax1.set_ylim((min(self.u1_data),max(self.u1_data)))        
+        self.ax2.set_ylim((min(self.u2_data),max(self.u2_data)))
+        self.ax3.set_ylim((min(self.u3_data),max(self.u3_data)))
+        self.ax4.set_ylim((min(self.u4_data),max(self.u4_data)))        
+        self.ax5.set_ylim((min(self.u5_data),max(self.u5_data)))
+        self.ax6.set_ylim((min(self.u6_data),max(self.u6_data)))
+
+class MainWindow(QWidget):
+    def __init__(self, parent=None):
+        super(MainWindow, self).__init__(parent)
+
+        # App main configuration: title and size
+        self.title = 'Custom Plots'
+        self.sg = QDesktopWidget().screenGeometry()
+        self.setWindowTitle(self.title)
+        self.setGeometry(self.sg.width()/2, 0, self.sg.width()/2, self.sg.height())
+
+        # App description: widgets and layouts
+        self.setLayout(QHBoxLayout())
+
+        self.tabs = QTabWidget()
+        self.tab1 = QWidget()
+        self.tab2 = QWidget()
+        self.tab3 = QWidget()
+        self.tab4 = QWidget()        
+
+        # Add Tabs
+        self.tab1_index = self.tabs.addTab(self.tab1, "pose error")
+        self.tab2_index = self.tabs.addTab(self.tab2, "jerk error")
+        self.tab3_index = self.tabs.addTab(self.tab3, "effort control")
+        self.tab4_index = self.tabs.addTab(self.tab4, "learning rate")
+
+        # Set Main Box layout
+        self.layout().addWidget(self.tabs)
+
+        # Plot
+        self.canvas1 = PlotPoseError(self, interval=20,dpi=100)
+        self.canvas2 = PlotJerkError(self, interval=20,dpi=100)
+        self.canvas3 = PlotEffortControl(self, interval=20,dpi=100)
+        
+        # Add layout to tabs
+        self.tab1.layout = QHBoxLayout()
+        self.tab1.layout.addWidget(self.canvas1)
+        self.tab1.setLayout(self.tab1.layout)
+
+        self.tab2.layout = QHBoxLayout()
+        self.tab2.layout.addWidget(self.canvas2)
+        self.tab2.setLayout(self.tab2.layout)
+
+        self.tab3.layout = QHBoxLayout()
+        self.tab3.layout.addWidget(self.canvas3)
+        self.tab3.setLayout(self.tab3.layout)
+
+        # ros communication
+        rospy.init_node('interface_node')
+        rospy.Subscriber("CartesianPoseError", CartesianPoseError, self.cartesianPoseError_cb)
+        rospy.Subscriber("CartesianJerkError", CartesianJerkError, self.cartesianJerkError_cb)
+        rospy.Subscriber("EffortControl", EffortControl, self.effortControl_cb)
+
+    def cartesianPoseError_cb(self, msg):
+        self.canvas1.update_data(msg)
+
+    def cartesianJerkError_cb(self, msg):
+        self.canvas2.update_data(msg)  
+
+    def effortControl_cb(self, msg):
+        self.canvas3.update_data(msg)                        
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    ex = MainWindow()
+    ex.show()
+    sys.exit(app.exec_())
