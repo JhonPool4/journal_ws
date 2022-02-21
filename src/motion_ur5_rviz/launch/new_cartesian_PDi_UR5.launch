@@ -39,7 +39,7 @@
     </group>     
 
     <!--Run rosnode with PD control method-->
-    <node name="pd_node" output="screen" type="new_cartesian_PDi_UR5" pkg="motion_ur5_rviz" >
+    <node name="node" output="screen" type="new_cartesian_PDi_UR5" pkg="motion_ur5_rviz" >
         <param name="uncertainty" value="$(arg uncertainty)"/>  
         <param name="alpha" value="$(arg alpha)" />
         <param name="gamma" value="$(arg gamma)" />
