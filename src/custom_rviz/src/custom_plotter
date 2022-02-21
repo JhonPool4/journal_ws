@@ -44,7 +44,7 @@ class PlotPoseError(FigureCanvas, anim.FuncAnimation):
     def __init__(self, parent=None, width=5, height=4, dpi=100, interval=10):
 
         # axis limits
-        max_x = rospy.get_param('/pd_node/sim_time') 			 # @param maximum simulation time [s]
+        max_x = rospy.get_param('/node/sim_time') 			 # @param maximum simulation time [s]
         #self.figure = plt.figure()
         self.figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
         FigureCanvas.__init__(self, self.figure)
@@ -136,7 +136,7 @@ class PlotJerkError(FigureCanvas, anim.FuncAnimation):
     def __init__(self, parent=None, width=5, height=4, dpi=100, interval=10):
 
         # axis limits
-        max_x = rospy.get_param('/pd_node/sim_time') 			 # @param maximum simulation time [s]
+        max_x = rospy.get_param('/node/sim_time') 			 # @param maximum simulation time [s]
         #self.figure = plt.figure()
         self.figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
         FigureCanvas.__init__(self, self.figure)
@@ -226,7 +226,7 @@ class PlotEffortControl(FigureCanvas, anim.FuncAnimation):
     def __init__(self, parent=None, width=5, height=4, dpi=100, interval=10):
 
         # axis limits
-        max_x = rospy.get_param('/pd_node/sim_time') 			 # @param maximum simulation time [s]
+        max_x = rospy.get_param('/node/sim_time') 			 # @param maximum simulation time [s]
         #self.figure = plt.figure()
         self.figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
         FigureCanvas.__init__(self, self.figure)
