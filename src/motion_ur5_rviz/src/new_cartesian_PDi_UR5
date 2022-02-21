@@ -39,14 +39,12 @@ from labpythonlib.lab_markers import *
 from utils.kalman import *
 from utils.datareader import *
 
-
-
 # =============
-# 	Save data
+#   Save data
 # =============
-data_dir   = rospy.get_param('/pd_node/data_path')
-images_dir = rospy.get_param('/pd_node/image_path')
-videos_dir = rospy.get_param('/pd_node/video_path')
+data_dir   = rospy.get_param('/node/data_path')
+images_dir = rospy.get_param('/node/image_path')
+videos_dir = rospy.get_param('/node/video_path')
 pwd = os.path.dirname(os.path.realpath(__file__))
 
 origin_assets = '../assets'
@@ -115,15 +113,16 @@ df_tmp = pd.DataFrame(columns=column_tmp,dtype=object)
 # ===============================
 # 		Configuration of node
 # ===============================
-# Create a nodo: PD_controller
-rospy.init_node("pd_node")
-# Public in topic /joint_states	to send joint data		
+# create a nodo: PD_controller
+rospy.init_node("node")
+# publishers	
 pub = rospy.Publisher('joint_states', JointState, queue_size=100)
 pub_pose_error = rospy.Publisher('CartesianPoseError', CartesianPoseError, queue_size=100)
 pub_jerk_error = rospy.Publisher('CartesianJerkError', CartesianJerkError, queue_size=100)
 pub_effort_control = rospy.Publisher('EffortControl', EffortControl, queue_size=100)
 pub_learning_rate = rospy.Publisher('LearningRate', LearningRate, queue_size=100)
-
+# object(message)
+jstate = JointState()
 pose_error = CartesianPoseError()
 jerk_error = CartesianJerkError()
 effort_control = EffortControl()
@@ -131,23 +130,25 @@ learning_rate = LearningRate()
 
 # Loop rate (in Hz)
 freq = 30.0
-dt         = 1/freq                    # 33  [ms]
-rate     = rospy.Rate(freq)        # 100 [Hz]
-# object(message) type JointState
-jstate = JointState()
+dt = 1/freq                    # 33  [ms]
+rate = rospy.Rate(freq)        # 100 [Hz]
 
-# ===============================
-# 		Line and Ball Marker
-# ===============================
+
+# =========================
+#   Ball and Frame Marker   
+# =========================
 # Show a ball marker for current and desired position of robot' end-effector
-bmarker_des 	= BallMarker(color['GREEN'])
-bmarker_act  	= BallMarker(color['YELLOW'])
-amarker_ref     = FrameMarker()
-# ================================
-# 		    Trajectory
-# ================================
+bmarker_ref = BallMarker(color['GREEN'], alpha=0.5)
+bmarker_act = BallMarker(color['YELLOW'])
+fmarker_ref = FrameMarker(xyz_pos=[0.5, 0, 0], alpha=0.5)
+fmarker_act = FrameMarker(xyz_pos=[0.5, 0, 0], alpha=1)
 
-trajectory_type = rospy.get_param('/pd_node/trajectory')
+
+# ==============
+#   Trajectory  
+# ==============
+
+trajectory_type = rospy.get_param('/node/trajectory')
 
 if  trajectory_type.split('_')[0] == 'dataset' and \
     trajectory_type.split('_')[1] in str(range(1,5)):
@@ -328,10 +329,10 @@ axis_angle_ref = np.zeros(3)
 # ================================
 # 			PD controller
 # ================================
-alpha = rospy.get_param('/pd_node/alpha')        # 10 15 20  # @param learning rate
-gamma = rospy.get_param('/pd_node/gamma') 		# @param hyperparameter for position error reduction
-beta  = rospy.get_param('/pd_node/beta') 			# @param hyperparameter for acceleration error reduction 
-delta = rospy.get_param('/pd_node/uncertainty')  # @param disturbance porcentage [0 25 50 75 100]
+alpha = rospy.get_param('/node/alpha')        # 10 15 20  # @param learning rate
+gamma = rospy.get_param('/node/gamma') 		# @param hyperparameter for position error reduction
+beta  = rospy.get_param('/node/beta') 			# @param hyperparameter for acceleration error reduction 
+delta = rospy.get_param('/node/uncertainty')  # @param disturbance porcentage [0 25 50 75 100]
 
 KP    = np.array([9, 9, 9, 9, 9, 9])
 KD    = 2*np.sqrt(KP)
@@ -348,10 +349,10 @@ u  = np.zeros(6) 		# @param effort control
 # 		Dynamic simulation
 # ================================
 t = 0.0 				# @param current simulation time
-sim_time = rospy.get_param('/pd_node/sim_time') 			 # @param maximum simulation time [s]
-max_pos_error = rospy.get_param('/pd_node/max_pos_error') # @param maximum position error [mm]
-max_ori_error = rospy.get_param('/pd_node/max_ori_error') # @param maximum orientation error [deg]
-max_jerk = rospy.get_param('/pd_node/max_jerk') # @param maximum jerk [mm/s^3]
+sim_time = rospy.get_param('/node/sim_time') 			 # @param maximum simulation time [s]
+max_pos_error = rospy.get_param('/node/max_pos_error') # @param maximum position error [mm]
+max_ori_error = rospy.get_param('/node/max_ori_error') # @param maximum orientation error [deg]
+max_jerk = rospy.get_param('/node/max_jerk') # @param maximum jerk [mm/s^3]
 
 
 # Filename
@@ -382,7 +383,7 @@ while not rospy.is_shutdown():
     # desired values (cartesian space)
     if not dataset_used:
         p_des, dp_des, ddp_des, dddp_des = circular_trayectory_generator(t)
-        p_des, dp_des, ddp_des, dddp_des = np.array(p_des), np.array(dp_des), np.array(ddp_des), np.array(dddp_des)
+        #p_des, dp_des, ddp_des, dddp_des = np.array(p_des), np.array(dp_des), np.array(ddp_des), np.array(dddp_des)
         rpy_des = rot2rpy(R_des)
         
     else:
@@ -390,13 +391,17 @@ while not rospy.is_shutdown():
         p_des = x_des[0:3]
         rpy_des = x_des[3:6]
         dp_des = dx_des[0:3]
+        drpy_des = dx_des[3:6]
         ddp_des = ddx_des[0:3]
 
+    # ==============================
+    #   Fist stage: Preprocessing   
+    # ==============================
     # reference position at Cartesian space
-    p_ref, dp_ref, ddp_ref = reference_trajectory(p_des, p_ref, dp_ref, dt)
+    p_ref, dp_ref, ddp_ref = reference_trajectory(p_des, dp_des, p_ref, dp_ref, dt)
     
     # reference orientation with Euler angles (ZYX)
-    rpy_ref, drpy_ref, ddrpy_ref = reference_trajectory(rpy_des, rpy_ref, drpy_ref, dt)
+    rpy_ref, drpy_ref, ddrpy_ref = reference_trajectory(rpy_des, drpy_des, rpy_ref, drpy_ref, dt)
 
 
     if dataset_used:
@@ -410,6 +415,9 @@ while not rospy.is_shutdown():
             _, _, _ = kf_rpy_ref.update(rpy_ref, drpy_ref)
 
 
+    # ======================================================
+    #   Second stage: Orientation and derivatives mapping         
+    # ======================================================
     R_ref = rpy2rot(rpy_ref)
     w_ref = angular_velocity_rpy(rpy_ref, drpy_ref)
     dw_ref = angular_acceleration_rpy(rpy_ref, drpy_ref, ddrpy_ref)
@@ -417,7 +425,7 @@ while not rospy.is_shutdown():
     ddpw_ref = np.concatenate((ddp_ref,dw_ref), axis=0)
 
     # Cartesian error: position
-    p_e[0:3]   =  p_ref - p_med # [3x3]
+    p_e[0:3]   =  p_ref - p_med
     dp_e[0:3]  =  dp_ref - dp_med
     ddp_e[0:3] =  ddp_ref - ddp_med
 
@@ -426,9 +434,9 @@ while not rospy.is_shutdown():
     dp_e[3:6] 	= w_ref - w_med
     ddp_e[3:6]  = dw_ref - dw_med
 
-    # Kalman update
-    dp_e_kf, ddp_e_kf, dddp_e_kf = kf.update(dp_e, ddp_e)
-
+    # ======================================================
+    #   Third stage: Forward and differential kinematicss         
+    # ======================================================    
     # jacobian: pose [6x6]
     J = nomi_robot.geometric_jacobian(q_med)  
     # jacobian: damped pseudo-inverse [6x6]
@@ -466,57 +474,15 @@ while not rospy.is_shutdown():
 
     axis_angle_e = axisangle_error(R_ref, R_med)  
 
-    # new learning rate
-    # agregar función por partes
-    alpha2 = (alpha/0.25)*(1/(1+np.exp(-p_e*2)))*(1- (1/(1+np.exp(-p_e*2))))
-    #alpha2 = alpha + 1-1/(1+np.exp(-x+4))
-
-    # Publish message: joint states
-    jstate.header.stamp = rospy.Time.now()
-    jstate.name 		= jnames			# Joints position name
-    jstate.position 	= q_med
-    jstate.velocity 	= dq_med
-    pub.publish(jstate)
-    # Publish message: end-effector pose error
-    pose_error.time = t
-    pose_error.pos_x = p_e[0]#np.linalg.norm(p_e[0:3])
-    pose_error.pos_y = p_e[1]#np.linalg.norm(p_e[3:6])
-    pose_error.pos_z = p_e[2]#np.linalg.norm(dddp_e_kf[0:3])
-    pose_error.ori_x = p_e[3]#np.linalg.norm(dddp_e_kf[3:6]) 
-    pose_error.ori_y = p_e[4]#u 
-    pose_error.ori_z = p_e[5]#alpha2
-    pub_pose_error.publish(pose_error)    
+    # ==============================
+    #   Fourth stage: Optimization            
+    # ==============================
+    # estimate jerk error
+    dp_e_kf, ddp_e_kf, dddp_e_kf = kf.update(dp_e, ddp_e)
     
-    jerk_error.time = t
-    jerk_error.dddx = dddp_e_kf[0]
-    jerk_error.dddy = dddp_e_kf[1]
-    jerk_error.dddz = dddp_e_kf[2]
-    jerk_error.ddw_x = dddp_e_kf[3] 
-    jerk_error.ddw_y = dddp_e_kf[4] 
-    jerk_error.ddw_z = dddp_e_kf[5]
-    pub_jerk_error.publish(jerk_error)
-
-    effort_control.time = t
-    effort_control.effort_control = u
-    pub_effort_control.publish(effort_control)
-
-    learning_rate.time = t
-    learning_rate.alpha = alpha2
-    pub_learning_rate.publish(learning_rate)
-    """ """
-
-    # Ball marker
-    bmarker_des.xyz(p_ref[0:3])	# Green
-    bmarker_act.xyz(p_med[0:3])	# Yellow          
-    amarker_ref.xyz(p_ref[0:3])
-    amarker_ref.rotation(R_ref)
-
-    bmarker_act.publish()
-    bmarker_des.publish()
-    amarker_ref.publish()
-    # ================
-    # 	optimization 
-    # ================
+    # new learning rate
+    alpha2 = copy(alpha)#(alpha/0.25)*(1/(1+np.exp(-p_e*2)))*(1- (1/(1+np.exp(-p_e*2))))
+    
     # Derivative of Kp and Kd
     dKP = -(alpha/dt) * (dJ_KP)
     dKD = -(alpha/dt) * (dJ_KD)
@@ -561,6 +527,55 @@ while not rospy.is_shutdown():
     # Upgrade control gains
     KP = KP - alpha2*crit_p*crit_j*dJ_KP 	#[6x1]  
     KD = KD - alpha2*crit_p*crit_j*dJ_KD 	#[6x1]	    
+
+    # ======================
+    # Publish on topics     
+    # ======================
+    # Publish message: joint states
+    jstate.header.stamp = rospy.Time.now()
+    jstate.name 		= jnames			# Joints position name
+    jstate.position 	= q_med
+    jstate.velocity 	= dq_med
+    pub.publish(jstate)
+    # Publish message: end-effector pose error
+    pose_error.time = t
+    pose_error.pos_x = dp_e[0]#np.linalg.norm(p_e[0:3])
+    pose_error.pos_y = dp_e[1]#np.linalg.norm(p_e[3:6])
+    pose_error.pos_z = dp_e[2]#np.linalg.norm(dddp_e_kf[0:3])
+    pose_error.ori_x = dp_e[3]#np.linalg.norm(dddp_e_kf[3:6]) 
+    pose_error.ori_y = dp_e[4]#u 
+    pose_error.ori_z = dp_e[5]#alpha2
+    pub_pose_error.publish(pose_error)    
+    # Publish message: end-effector jerk error
+    jerk_error.time = t
+    jerk_error.dddx = dddp_e_kf[0]
+    jerk_error.dddy = dddp_e_kf[1]
+    jerk_error.dddz = dddp_e_kf[2]
+    jerk_error.ddw_x = dddp_e_kf[3] 
+    jerk_error.ddw_y = dddp_e_kf[4] 
+    jerk_error.ddw_z = dddp_e_kf[5]
+    pub_jerk_error.publish(jerk_error)
+    # Publish message: effort control
+    effort_control.time = t
+    effort_control.effort_control = u
+    pub_effort_control.publish(effort_control)
+    # Publish message: learning rate
+    learning_rate.time = t
+    learning_rate.alpha = alpha2
+    pub_learning_rate.publish(learning_rate)
+    
+    # Ball marker
+    bmarker_ref.xyz(p_ref[0:3])	# Green
+    bmarker_act.xyz(p_med[0:3])	# Yellow          
+    bmarker_ref.publish()
+    bmarker_act.publish()    
+    # Frame marker
+    fmarker_ref.xyz(p_ref[0:3]) 
+    fmarker_act.xyz(p_med[0:3])
+    fmarker_ref.rotation(R_ref) 
+    fmarker_act.rotation(R_med)
+    fmarker_ref.publish()
+    fmarker_act.publish()
 
     """
     # Append data
