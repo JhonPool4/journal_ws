@@ -54,6 +54,7 @@ find_package(catkin REQUIRED COMPONENTS
    CartesianJerkError.msg
    EffortControl.msg
    LearningRate.msg
+   CustomMsg.msg
  )
 ## Generate services in the 'srv' folder
 # add_service_files(
