@@ -64,13 +64,13 @@
           /visualization_marker" 
           if="$(eval record_rosbag)" /> 
 
-    <!-- Open Rviz with config -->   
+    <!-- Open Rviz with config -->    
     <node name="custom_rviz" pkg="custom_rviz" type="custom_rviz" output="screen" >
         <param name="sim_time" value="$(arg sim_time)"/>
     </node>       
     <node name="custom_plotter" pkg="custom_rviz" type="custom_plotter" output="screen" >
         <param name="sim_time" value="$(arg sim_time)"/>
-    </node>              
+    </node>               
     <!--Open Rviz with config
     <arg name="config_file" value="$(find ur5_description)/config/journal_config_ur5.rviz"/>
     <node name="rviz" pkg="rviz" type="rviz" respawn="false" output="screen" args="-d$(arg config_file)"/>--> 
