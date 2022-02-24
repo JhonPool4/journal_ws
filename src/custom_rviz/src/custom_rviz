@@ -5,6 +5,7 @@ import os
 
 # PyQT libraries
 import sys
+import numpy as np
 
 try:
     from rviz import bindings as rviz
@@ -26,7 +27,7 @@ class RvizCamera():
         # Read config file data into config object
         reader = rviz.YamlConfigReader()
         config = rviz.Config()
-        reader.readFile(config, os.path.join(dir_name, "../config/journal_views.rviz"))
+        reader.readFile(config, os.path.join(dir_name, "../config/journal_views_dataset.rviz"))
 
         # VisualizationFrame reads data from config
         self.frame.load(config)
@@ -50,7 +51,7 @@ class MainWindow(QWidget):
         self.title = 'Journal: Custom RViz'
         self.sg = QDesktopWidget().screenGeometry()
         self.setWindowTitle(self.title)
-        self.setGeometry(0, 0, self.sg.width()/2-100, self.sg.height())
+        self.setGeometry(0, 0, np.round(self.sg.width()*1/4), self.sg.height())
 
         # App description: widgets and layouts
         self.setLayout(QHBoxLayout())
