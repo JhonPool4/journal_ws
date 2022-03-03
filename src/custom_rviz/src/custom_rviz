@@ -51,7 +51,7 @@ class MainWindow(QWidget):
         self.title = 'Journal: Custom RViz'
         self.sg = QDesktopWidget().screenGeometry()
         self.setWindowTitle(self.title)
-        self.setGeometry(0, 0, np.round(self.sg.width()*1/4), self.sg.height())
+        self.setGeometry(0, 0, np.round(self.sg.width()*1/4),   self.sg.height())
 
         # App description: widgets and layouts
         self.setLayout(QHBoxLayout())
