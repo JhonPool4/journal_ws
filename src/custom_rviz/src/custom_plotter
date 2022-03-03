@@ -1,14 +1,9 @@
 #!/usr/bin/env python3
 
 # ROS libraries and messages
-from pyexpat.errors import XML_ERROR_ABORTED
+#from pyexpat.errors import XML_ERROR_ABORTED
 import rospy, os
-from custom_rviz.msg import CartesianPoseError
-from custom_rviz.msg import CartesianJerkError
-from custom_rviz.msg import EffortControl
-from custom_rviz.msg import LearningRate
 from custom_rviz.msg import CustomMsg
-from sensor_msgs.msg import JointState
 
 # PyQT libraries
 import sys
@@ -57,7 +52,6 @@ class PlotCompareTrajectory(FigureCanvas, anim.FuncAnimation):
         self.ax1.set_xlabel('Time (s)')
         self.ax1.set_ylabel('x (mm)')
         self.ax1.set_xlim((0,max_x))
-        self.line10, = self.ax1.plot([], [],'-r')
         self.line1, = self.ax1.plot([], [], '-g')
         self.line12, = self.ax1.plot([], [],'--k')
         
@@ -66,7 +60,6 @@ class PlotCompareTrajectory(FigureCanvas, anim.FuncAnimation):
         self.ax3.set_xlabel('Time (s)')
         self.ax3.set_ylabel('y (mm)')
         self.ax3.set_xlim((0,max_x))
-        self.line30, = self.ax3.plot([], [],'-r')
         self.line3, = self.ax3.plot([], [], '-g')
         self.line32, = self.ax3.plot([], [],'--k')
         
@@ -75,7 +68,6 @@ class PlotCompareTrajectory(FigureCanvas, anim.FuncAnimation):
         self.ax5.set_xlabel('Time (s)')
         self.ax5.set_ylabel('z (mm)')
         self.ax5.set_xlim((0,max_x))
-        self.line50, = self.ax5.plot([], [],'-r')
         self.line5, = self.ax5.plot([], [], '-g')   
         self.line52, = self.ax5.plot([], [],'--k')
         
@@ -85,7 +77,6 @@ class PlotCompareTrajectory(FigureCanvas, anim.FuncAnimation):
         self.ax2.set_xlabel('Time (s)')
         self.ax2.set_ylabel('roll (deg)')
         self.ax2.set_xlim((0,max_x))
-        self.line20, = self.ax2.plot([], [],'-r')
         self.line2, = self.ax2.plot([], [], '-g')
         self.line22, = self.ax2.plot([], [],'--k')
         
@@ -94,7 +85,6 @@ class PlotCompareTrajectory(FigureCanvas, anim.FuncAnimation):
         self.ax4.set_xlabel('Time (s)')
         self.ax4.set_ylabel('pitch (deg)')
         self.ax4.set_xlim((0,max_x))
-        self.line40, = self.ax4.plot([], [],'-r')
         self.line4, = self.ax4.plot([], [], '-g')
         self.line42, = self.ax4.plot([], [],'--k')
         
@@ -103,7 +93,6 @@ class PlotCompareTrajectory(FigureCanvas, anim.FuncAnimation):
         self.ax6.set_xlabel('Time (s)')
         self.ax6.set_ylabel('yaw (deg)')
         self.ax6.set_xlim((0,max_x))
-        self.line60, = self.ax6.plot([], [],'-r')
         self.line6, = self.ax6.plot([], [], '-g')
         self.line62, = self.ax6.plot([], [],'--k')
         
@@ -123,13 +112,6 @@ class PlotCompareTrajectory(FigureCanvas, anim.FuncAnimation):
         self.ori_y_data2 = []
         self.ori_z_data2 = []
 
-        self.pos_x_data3 = []
-        self.pos_y_data3 = []
-        self.pos_z_data3 = []  
-        self.ori_x_data3 = []
-        self.ori_y_data3 = []
-        self.ori_z_data3 = []
-
         anim.FuncAnimation.__init__(self, self.figure, self.update_figure, interval=interval, blit=False)
 
     def update_figure(self, _):
@@ -140,10 +122,6 @@ class PlotCompareTrajectory(FigureCanvas, anim.FuncAnimation):
         self.line12.set_data(self.time_data, self.pos_x_data2)
         self.line32.set_data(self.time_data, self.pos_y_data2)
         self.line52.set_data(self.time_data, self.pos_z_data2)
-        self.line10.set_data(self.time_data, self.pos_x_data3)
-        self.line30.set_data(self.time_data, self.pos_y_data3)
-        self.line50.set_data(self.time_data, self.pos_z_data3)
-
 
         self.line2.set_data(self.time_data, self.ori_x_data1)
         self.line4.set_data(self.time_data, self.ori_y_data1)
@@ -151,43 +129,34 @@ class PlotCompareTrajectory(FigureCanvas, anim.FuncAnimation):
         self.line22.set_data(self.time_data, self.ori_x_data2)
         self.line42.set_data(self.time_data, self.ori_y_data2)
         self.line62.set_data(self.time_data, self.ori_z_data2)
-        self.line20.set_data(self.time_data, self.ori_x_data3)
-        self.line40.set_data(self.time_data, self.ori_y_data3)
-        self.line60.set_data(self.time_data, self.ori_z_data3)                    
         return self.line1, self.line2, self.line3, self.line4, self.line5, self.line6, \
-                self.line12, self.line22, self.line32, self.line42, self.line52, self.line62, \
-                self.line10, self.line20, self.line30, self.line40, self.line50, self.line60
+                self.line12, self.line22, self.line32, self.line42, self.line52, self.line62
         
     def update_data(self, msg):   
         # get data from topic
         self.time_data.append(msg.time)
-        self.pos_x_data1.append(1000*msg.var1[0])
-        self.pos_y_data1.append(1000*msg.var1[1])
-        self.pos_z_data1.append(1000*msg.var1[2])  
-        self.ori_x_data1.append(np.rad2deg(msg.var1[3]))
-        self.ori_y_data1.append(np.rad2deg(msg.var1[4]))
-        self.ori_z_data1.append(np.rad2deg(msg.var1[5]))
-        self.pos_x_data2.append(1000*msg.var2[0])
-        self.pos_y_data2.append(1000*msg.var2[1])
-        self.pos_z_data2.append(1000*msg.var2[2])  
-        self.ori_x_data2.append(np.rad2deg(msg.var2[3]))
-        self.ori_y_data2.append(np.rad2deg(msg.var2[4]))
-        self.ori_z_data2.append(np.rad2deg(msg.var2[5]))
-        self.pos_x_data3.append(1000*msg.var3[0])
-        self.pos_y_data3.append(1000*msg.var3[1])
-        self.pos_z_data3.append(1000*msg.var3[2])  
-        self.ori_x_data3.append(np.rad2deg(msg.var3[3]))
-        self.ori_y_data3.append(np.rad2deg(msg.var3[4]))
-        self.ori_z_data3.append(np.rad2deg(msg.var3[5]))
+        self.pos_x_data1.append(msg.var1[0])
+        self.pos_y_data1.append(msg.var1[1])
+        self.pos_z_data1.append(msg.var1[2])  
+        self.ori_x_data1.append(msg.var1[3])
+        self.ori_y_data1.append(msg.var1[4])
+        self.ori_z_data1.append(msg.var1[5])
+
+        self.pos_x_data2.append(msg.var2[0])
+        self.pos_y_data2.append(msg.var2[1])
+        self.pos_z_data2.append(msg.var2[2])  
+        self.ori_x_data2.append(msg.var2[3])
+        self.ori_y_data2.append(msg.var2[4])
+        self.ori_z_data2.append(msg.var2[5])
                 
         # updating axes
-        self.ax1.set_ylim((min(np.concatenate((self.pos_x_data1, self.pos_x_data2, self.pos_x_data3))),max(np.concatenate((self.pos_x_data1, self.pos_x_data2, self.pos_x_data3))) ))       
-        self.ax3.set_ylim((min(np.concatenate((self.pos_y_data1, self.pos_y_data2, self.pos_y_data3))),max(np.concatenate((self.pos_y_data1, self.pos_y_data2, self.pos_y_data3))) ))
-        self.ax5.set_ylim((min(np.concatenate((self.pos_z_data1, self.pos_z_data2, self.pos_z_data3))),max(np.concatenate((self.pos_z_data1, self.pos_z_data2, self.pos_z_data3))) ))
+        self.ax1.set_ylim((min(np.concatenate((self.pos_x_data1, self.pos_x_data2))),max(np.concatenate((self.pos_x_data1, self.pos_x_data2))) ))       
+        self.ax3.set_ylim((min(np.concatenate((self.pos_y_data1, self.pos_y_data2))),max(np.concatenate((self.pos_y_data1, self.pos_y_data2))) ))
+        self.ax5.set_ylim((min(np.concatenate((self.pos_z_data1, self.pos_z_data2))),max(np.concatenate((self.pos_z_data1, self.pos_z_data2))) ))
 
-        self.ax2.set_ylim((min(np.concatenate((self.ori_x_data1, self.ori_x_data2, self.ori_x_data3))),max(np.concatenate((self.ori_x_data1, self.ori_x_data2, self.ori_x_data3))) ))       
-        self.ax4.set_ylim((min(np.concatenate((self.ori_y_data1, self.ori_y_data2, self.ori_y_data3))),max(np.concatenate((self.ori_y_data1, self.ori_y_data2, self.ori_y_data3))) ))
-        self.ax6.set_ylim((min(np.concatenate((self.ori_z_data1, self.ori_z_data2, self.ori_z_data3))),max(np.concatenate((self.ori_z_data1, self.ori_z_data2, self.ori_z_data3))) ))
+        self.ax2.set_ylim((min(np.concatenate((self.ori_x_data1, self.ori_x_data2))),max(np.concatenate((self.ori_x_data1, self.ori_x_data2))) ))       
+        self.ax4.set_ylim((min(np.concatenate((self.ori_y_data1, self.ori_y_data2))),max(np.concatenate((self.ori_y_data1, self.ori_y_data2))) ))
+        self.ax6.set_ylim((min(np.concatenate((self.ori_z_data1, self.ori_z_data2))),max(np.concatenate((self.ori_z_data1, self.ori_z_data2))) ))
                
 class CustomPlotter(FigureCanvas, anim.FuncAnimation):
 
@@ -275,7 +244,36 @@ class CustomPlotter(FigureCanvas, anim.FuncAnimation):
         self.ax5.set_ylim((min(self.q5_data)-shift,max(self.q5_data)+shift))
         self.ax6.set_ylim((min(self.q6_data)-shift,max(self.q6_data)+shift))
 
+class Plotter(FigureCanvas, anim.FuncAnimation):
+    def __init__(self, parent=None, width=5, height=4, dpi=100, interval=10, xlabel=[]):
 
+        # axis limits
+        max_x = rospy.get_param('/node/sim_time') 			 # @param maximum simulation time [s]
+        #self.figure = plt.figure()
+        self.figure = Figure(figsize=(width, height), dpi=dpi, tight_layout=True)
+        FigureCanvas.__init__(self, self.figure)
+        
+        self.ax1 = self.figure.add_subplot(1,1,1)
+        self.ax1.set_xlabel('Time (s)')
+        self.ax1.set_ylabel(xlabel[0])
+        self.ax1.set_xlim((0,max_x))
+        self.line1, = self.ax1.plot([], [])
+
+        # data
+        self.time_data = []
+        self.q1_data = []
+        anim.FuncAnimation.__init__(self, self.figure, self.update_figure, interval=interval, blit=False)
+
+    def update_figure(self, _):
+        self.line1.set_data(self.time_data, self.q1_data)
+
+    def update_data(self, msg, sim_time):   
+        self.time_data.append(sim_time) 
+        self.q1_data.append(msg)        
+
+        # updating axes
+        shift=0.01
+        self.ax1.set_ylim((min(self.q1_data)-shift,max(self.q1_data)+shift))     
 
 class MainWindow(QWidget):
     def __init__(self, parent=None):
@@ -295,25 +293,39 @@ class MainWindow(QWidget):
         self.tab2 = QWidget()
         self.tab3 = QWidget()
         self.tab4 = QWidget()
-        self.tab5 = QWidget()        
+        self.tab5 = QWidget()
+        self.tab6 = QWidget()
+        self.tab7 = QWidget()    
+        self.tab8 = QWidget()    
+        self.tab9 = QWidget() 
+        self.tab10 = QWidget()        
 
         # Add Tabs
-        self.tab1_index = self.tabs.addTab(self.tab1, "position")
-        self.tab2_index = self.tabs.addTab(self.tab2, "velocity")
-        self.tab3_index = self.tabs.addTab(self.tab3, "jerk")
-        self.tab4_index = self.tabs.addTab(self.tab4, "joint states")
-        self.tab5_index = self.tabs.addTab(self.tab5, "alpha")
-
+        self.tab1_index = self.tabs.addTab(self.tab1, "xe")
+        self.tab2_index = self.tabs.addTab(self.tab2, "dxe")
+        self.tab3_index = self.tabs.addTab(self.tab3, "dddxe")
+        self.tab4_index = self.tabs.addTab(self.tab4, "q")
+        self.tab5_index = self.tabs.addTab(self.tab5, "u")
+        #self.tab6_index = self.tabs.addTab(self.tab6, "KP")
+        #self.tab7_index = self.tabs.addTab(self.tab7, "KD")
+        self.tab8_index = self.tabs.addTab(self.tab8, "K")
+        self.tab9_index = self.tabs.addTab(self.tab9, "dJ_q")
+        self.tab10_index = self.tabs.addTab(self.tab10, "cost function")
         # Set Main Box layout
         self.layout().addWidget(self.tabs)
 
         # Plot
-        self.canvas1 = CustomPlotter(self, interval=30, dpi=100, xlabel=['x (mm)', 'y (mm)', 'z (mm)', 'roll (deg)', 'pitch (deg)', 'yaw (deg)'])
-        self.canvas2 = CustomPlotter(self, interval=30, dpi=100, xlabel=['dx', 'dy', 'dz', 'roll', 'pitch', 'yaw'])
-        self.canvas3 = CustomPlotter(self, interval=30,dpi=100, xlabel=['dddx', 'dddy', 'dddz', 'roll', 'pitch', 'yaw'])
-        self.canvas4 = CustomPlotter(self, interval=30,dpi=100, xlabel=['u1', 'u2', 'u3', 'u4', 'u5', 'u6'])
-        self.canvas5 = CustomPlotter(self, interval=30,dpi=100, xlabel=['a1', 'a2', 'a3', 'a4', 'a5', 'a6'])
-        
+        self.canvas1 = CustomPlotter(self, interval=40, dpi=100, xlabel=['x (mm)', 'y (mm)', 'z (mm)', 'roll (deg)', 'pitch (deg)', 'yaw (deg)'])
+        self.canvas2 = CustomPlotter(self, interval=40, dpi=100, xlabel=['dx', 'dy', 'dz', 'wx', 'wy', 'wz'])
+        self.canvas3 = CustomPlotter(self, interval=40,dpi=100, xlabel=['dddx', 'dddy', 'dddz', 'ddwx', 'ddwy', 'ddwz'])
+        self.canvas4 = CustomPlotter(self, interval=40,dpi=100, xlabel=['q1', 'q2', 'q3', 'q4', 'q5', 'q6'])
+        self.canvas5 = CustomPlotter(self, interval=40,dpi=100, xlabel=['u1', 'u2', 'u3', 'u4', 'u5', 'u6'])
+        #self.canvas6 = CustomPlotter(self, interval=40,dpi=100, xlabel=['P1_1', 'P1_2', 'P1_3', 'P1_4', 'P1_5', 'P1_6'])
+        #self.canvas7 = CustomPlotter(self, interval=40,dpi=100, xlabel=['P2_1', 'P2_2', 'P2_3', 'P2_4', 'P2_5', 'P2_6'])
+        self.canvas8 = CustomPlotter(self, interval=40,dpi=100, xlabel=['K_x', 'K_y', 'K_z', 'K_roll', 'K_pitch', 'K_yaw'])
+        self.canvas9 = CustomPlotter(self, interval=40,dpi=100, xlabel=['dJ_q_x', 'dJ_q_y', 'dJ_q_z', 'dJ_q_roll', 'dJ_q_pitch', 'dJ_q_yaw'])
+        self.canvas10 = Plotter(self, interval=40,dpi=100, xlabel=['cost'])
+
         # Add layout to tabs
         self.tab1.layout = QHBoxLayout()
         self.tab1.layout.addWidget(self.canvas1)
@@ -330,11 +342,32 @@ class MainWindow(QWidget):
         self.tab4.layout = QHBoxLayout()
         self.tab4.layout.addWidget(self.canvas4)
         self.tab4.setLayout(self.tab4.layout)
-
+        
         self.tab5.layout = QHBoxLayout()
         self.tab5.layout.addWidget(self.canvas5)
         self.tab5.setLayout(self.tab5.layout)
+        """
+        self.tab6.layout = QHBoxLayout()
+        self.tab6.layout.addWidget(self.canvas6)
+        self.tab6.setLayout(self.tab6.layout)
+
+        self.tab7.layout = QHBoxLayout()
+        self.tab7.layout.addWidget(self.canvas7)
+        self.tab7.setLayout(self.tab7.layout)                
+        """
+        self.tab8.layout = QHBoxLayout()
+        self.tab8.layout.addWidget(self.canvas8)
+        self.tab8.setLayout(self.tab8.layout)
         
+        self.tab9.layout = QHBoxLayout()
+        self.tab9.layout.addWidget(self.canvas9)
+        self.tab9.setLayout(self.tab9.layout) 
+        
+        self.tab10.layout = QHBoxLayout()
+        self.tab10.layout.addWidget(self.canvas10)
+        self.tab10.setLayout(self.tab10.layout) 
+        
+
         # ros communication
         rospy.init_node('interface_node')
         rospy.Subscriber("simulation_data", CustomMsg, self.sim_data_cb)
@@ -343,8 +376,18 @@ class MainWindow(QWidget):
         self.canvas1.update_data(msg.x_e, msg.time)
         self.canvas2.update_data(msg.dx_e, msg.time)
         self.canvas3.update_data(msg.dddx_e, msg.time)
+        
         self.canvas4.update_data(msg.q, msg.time)
-        self.canvas5.update_data(msg.alpha, msg.time)
+        
+        self.canvas5.update_data(msg.u, msg.time)
+        """
+        self.canvas6.update_data(msg.K1, msg.time)
+        self.canvas7.update_data(msg.K2, msg.time)
+        """
+        self.canvas8.update_data(msg.K, msg.time)
+        self.canvas9.update_data(msg.dJ_q, msg.time)   
+             
+        self.canvas10.update_data(msg.cost, msg.time)
 
 
 if __name__ == '__main__':
