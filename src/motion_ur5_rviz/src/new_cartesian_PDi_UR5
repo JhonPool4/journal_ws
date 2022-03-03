@@ -11,11 +11,15 @@ from custom_rviz.msg import CustomMsg
 from labpythonlib.lab_functions import *
 from labpythonlib.lab_markers import *	
 
+from numpy import multiply as mul
+import numpy as np
+
+# useful command
+# roslaunch motion_ur5_rviz new_cartesian_PDi_UR5.launch trajectory:=circular sim_time:=200 alpha:=0.1 uncertainty:=100
 
 # =============
 #   Save data
 # =============
-
 data_dir   = rospy.get_param('/node/data_path')
 images_dir = rospy.get_param('/node/image_path')
 videos_dir = rospy.get_param('/node/video_path')
@@ -23,7 +27,7 @@ pwd = os.path.dirname(os.path.realpath(__file__))
 
 origin_assets = '../assets'
 folder_assets = os.path.join(pwd, origin_assets)
-"""
+
 # Creates folder_data if it does not exist
 if not os.path.exists(data_dir):
 	os.makedirs(data_dir)
@@ -31,20 +35,24 @@ if not os.path.exists(images_dir):
 	os.makedirs(images_dir)
 if not os.path.exists(videos_dir):
 	os.makedirs(videos_dir)
-"""
 
-column_tmp = [
+df_column = [
     't',
+    
     'x_des', 'y_des', 'z_des', 'roll_des', 'pitch_des', 'yaw_des',
     'dx_des', 'dy_des', 'dz_des', 'droll_des', 'dpitch_des', 'dyaw_des',
-    'x_ref', 'y_ref', 'z_ref', 'roll_ref', 'pitch_ref', 'yaw_ref',
-    'dx_ref', 'dy_ref', 'dz_ref', 'droll_ref', 'dpitch_ref', 'dyaw_ref',    
-    ]
-#    'ddx_des', 'ddy_des', 'ddz_des', 'ddroll_des', 'ddpitch_des', 'ddyaw_des',
+    'wx_des', 'wy_des', 'wz_des',
 
-df_tmp = pd.DataFrame(columns=column_tmp,dtype=object)
-path_tmp = os.path.join(pwd, 'tmp2.csv')
-df_tmp.to_csv(path_tmp, index=False)
+    'x_ref', 'y_ref', 'z_ref', 'roll_ref', 'pitch_ref', 'yaw_ref',
+    'dx_ref', 'dy_ref', 'dz_ref', 'droll_ref', 'dpitch_ref', 'dyaw_ref',
+    'wx_ref', 'wy_ref', 'wz_ref',
+
+    'x_med', 'y_med', 'z_med', 'roll_med', 'pitch_med', 'yaw_med',
+    'dx_med', 'dy_med', 'dz_med', 'droll_med', 'dpitch_med', 'dyaw_med',
+    'wx_med', 'wy_med', 'wz_med'    
+    ]
+
+
 
 # ===============================
 # 		Configuration of node
@@ -53,13 +61,13 @@ df_tmp.to_csv(path_tmp, index=False)
 rospy.init_node("node")
 # publishers	
 pub_jstate = rospy.Publisher('joint_states', JointState, queue_size=100)
-pub_simdata = rospy.Publisher('simulation_data', CustomMsg, queue_size=100)
+pub_simdata = rospy.Publisher('simulation_data', CustomMsg, queue_size=1000)
 # object(message)
 jstate = JointState()
 simdata = CustomMsg()
 
 # Loop rate (in Hz)
-freq = 30.0
+freq = 30
 dt = 1/freq                    # 33  [ms]
 rate = rospy.Rate(freq)        # 100 [Hz]
 
@@ -71,7 +79,6 @@ bmarker_ref = BallMarker(color['GREEN'], alpha=0.5)
 bmarker_act = BallMarker(color['YELLOW'])
 fmarker_ref = FrameMarker(xyz_pos=[0.5, 0, 0], alpha=0.5)
 fmarker_act = FrameMarker(xyz_pos=[0.5, 0, 0], alpha=1)
-
 
 # ==============
 #   Trajectory  
@@ -114,16 +121,14 @@ else:
 # 	Set home joint configuration of UR5
 # =======================================
 if dataset_used:
-
-    
     x0, dx0,_,_ = dr.dataset_trajectory_generator()
 else:
-    x0, dx0 = circular_trayectory_generator(0) 
-    #q0 = np.array([-0.22007212, -0.72670633, -4.72730825,  0.7416256,   1.57079633, -3.36166477]) # Center [0.5 +0.0 0.0]
+    x0, dx0 = circular_trayectory_generator(0,freq_xyz=1/np.pi, freq_rpy=1/np.power(np.pi, 2), rpy_amp=np.array([np.pi/8, np.pi/8, 0.0]) )
+    
 # real model
 tmp_urdf_path = rospy.get_param('/real_ur5_urdf')
 robot_tmp = Robot(np.zeros(6), np.zeros(6), dt, tmp_urdf_path)
-
+#q0 = np.array([-0.22007212, -0.72670633, -4.72730825,  0.7416256,   1.57079633, -3.36166477]) # Center [0.5 +0.0 0.0]
 q0 = robot_tmp.inverse_kinematics_pose(x0[0:3], rpy2rot(x0[3:6]), np.zeros(6), max_iter = 500) # Initial joint conf for dataset
 q0 = np.arctan2(np.sin(q0), np.cos(q0)) # normalization
 dq0 = np.zeros(6)
@@ -161,7 +166,6 @@ M_p = np.zeros([6,6])
 b = np.zeros(ndof)
 b_p = np.zeros(6)
 
-
 # ==============================================
 #   set initial cartesian configuration of UR5
 # ==============================================
@@ -176,12 +180,15 @@ ddp0, dw0 = real_robot.dtwist(q0, dq0, ddq0)
 p_ref, rpy_ref = copy(p0), copy(rpy0)
 dp_ref, drpy_ref = copy(dp0), np.zeros(3)
 
+# reference cartesian trajectory: position, velocity and acceleration
+p_ref, rpy_ref = copy(p0), copy(rpy0)
+dp_ref, drpy_ref = copy(dp0), np.zeros(3)
+
 # measured cartesian trajectory: position, velocity and acceleration
 p_med, dp_med, ddp_med = copy(p0), copy(dp0), copy(ddp0)
 
 R_med, rpy_med = copy(R0), copy(rpy0)
 w_med, dw_med = copy(w0), copy(dw0)
-
 
 # Cartesian error
 x_e    = np.zeros(6)
@@ -192,25 +199,18 @@ dddx_e = np.zeros(6)
 # ================================
 # 			PD controller
 # ================================
-alpha = rospy.get_param('/node/alpha')        # 10 15 20  # @param learning rate
+alpha0 = rospy.get_param('/node/alpha')        # # @param learning rate
+alpha = np.array([alpha0, alpha0, alpha0, alpha0, alpha0, alpha0])
 gamma = rospy.get_param('/node/gamma') 		# @param hyperparameter for position error reduction
 beta  = rospy.get_param('/node/beta') 			# @param hyperparameter for acceleration error reduction 
 delta = rospy.get_param('/node/uncertainty')  # @param disturbance porcentage [0 25 50 75 100]
-alpha_KP = np.zeros(6)
-alpha_KD = np.zeros(6)
-alpha_de = np.zeros(6)
 
-KP    = np.array([9, 9, 9, 9, 9, 9])
-KD    = 2*np.sqrt(KP)
-dJ_KP = np.zeros(6)
-dJ_KD = np.zeros(6)
-dKP = np.zeros(6)
-dKD = np.zeros(6)
+K = np.array([9, 9, 9, 9, 9, 9]) # @param control parameter
+dJ_K = np.zeros(6)
+dK = np.zeros(6)
 
 F  = np.zeros(6)
-Fp = np.zeros(6)
 u  = np.zeros(6) 		# @param effort control
-
 
 # ================================
 # 		Dynamic simulation
@@ -221,31 +221,44 @@ max_pos_error = rospy.get_param('/node/max_pos_error') # @param maximum position
 max_ori_error = rospy.get_param('/node/max_ori_error') # @param maximum orientation error [deg]
 max_jerk = rospy.get_param('/node/max_jerk') # @param maximum jerk [mm/s^3]
 
+fn = "cartesian_{3}_K_{0}_alpha_{1}_t_{2}.csv".format(K[0], alpha[0], sim_time, trajectory_type) # file name
+df = pd.DataFrame(columns=df_column,dtype=object) # create data frame
+path_df = os.path.join(data_dir, fn) # path to save data
+df.to_csv(path_df, index=False) # save data
 
 while not rospy.is_shutdown():
     # desired values: pose and dpose
     if not dataset_used:
-        x_des, dx_des = circular_trayectory_generator(t) 
+        # position
+        # 2*pi*0.05*f = 0.1 ==> f= 1/pi 
+        # orientation
+        # 2*pi*pi/4*f = 1.5 ==> 
+        x_des, dx_des = circular_trayectory_generator(t,freq_xyz=1/np.pi, freq_rpy=1/np.pi, rpy_amp=np.array([np.pi/8, np.pi/8, 0.0]) )
     else:
         x_des, dx_des, _, _ = dr.dataset_trajectory_generator()
 
     # angula velocity
     w_des = rpy2angularVel(x_des[3:6], dx_des[3:6])
-
+    
     # ==============================
     #   Fist stage: Preprocessing   
     # ==============================
     # reference position at Cartesian space
-    p_ref, dp_ref, _ = reference_trajectory(x_des[0:3], x_des[0:3], p_ref, dp_ref, dt)
+    p_ref, dp_ref, _ = reference_trajectory(x_des[0:3], dx_des[0:3], p_ref, dp_ref, dt, wn= 8)
     
     # reference orientation with Euler angles (ZYX)
-    rpy_ref, drpy_ref, _ = reference_trajectory(x_des[3:6], dx_des[3:6], rpy_ref, drpy_ref, dt)
+    rpy_ref, drpy_ref, _ = reference_trajectory(x_des[3:6], dx_des[3:6], rpy_ref, drpy_ref, dt, wn=8)
 
-    # smothing reference signal
-    #p_ref, dp_ref, ddp_ref  = kf_pos.update(p_ref, dp_ref)
-    #rpy_ref, drpy_ref, ddrpy_ref = kf_ori.update(rpy_ref, drpy_ref)
-    p_ref, dp_ref, ddp_ref  = kf_pos.update(x_des[0:3], dx_des[0:3])
-    rpy_ref, drpy_ref, ddrpy_ref = kf_ori.update(x_des[3:6], dx_des[3:6])
+    # temporal values from second-order model
+    tmp_p_ref = copy(p_ref)
+    tmp_dp_ref = copy(dp_ref)
+    tmp_rpy_ref = copy(rpy_ref)
+    tmp_drpy_ref = copy(drpy_ref)
+    tmp_w_ref = rpy2angularVel(tmp_rpy_ref, tmp_drpy_ref)
+
+    # kalman filter: smothing reference signal
+    p_ref, dp_ref, ddp_ref  = kf_pos.update(p_ref, dp_ref)
+    rpy_ref, drpy_ref, ddrpy_ref = kf_ori.update(rpy_ref, drpy_ref)
 
     # ======================================================
     #   Second stage: Orientation and derivatives mapping         
@@ -260,7 +273,6 @@ while not rospy.is_shutdown():
     x_e[0:3]   =  p_ref - p_med
     dx_e[0:3]  =  dp_ref - dp_med
     ddx_e[0:3] =  ddp_ref - ddp_med
-
     # Carteisan error: orientation
     x_e[3:6] 	= axisangle_error(R_ref, R_med)
     dx_e[3:6] 	= w_ref - w_med
@@ -284,85 +296,52 @@ while not rospy.is_shutdown():
     b_p = J_inv.T.dot(b) - M_p.dot(dJ.dot(dq_med)) # nonlinear effects vector at Joint space at Cartesian space
 
     # cartesian PD control + Feedback linearization
-    F = M_p.dot(ddpw_ref + np.multiply(KP, x_e) + np.multiply(KD, dx_e)) + b_p
-    u = J.T.dot(F) 
+    F = M_p.dot(ddpw_ref + mul(K, x_e) + mul(2*np.sqrt(K), dx_e)) + b_p
+    u = J.T.dot(F)
 
     # send control signal
     real_robot.send_control_command(u)    
 
     # update states
     #rpy_old = rot2rpy(R_med) 
-    q_med, dq_med, _ = real_robot.read_joint_position_velocity_acceleration()
+    q_med, dq_med, ddq_med = real_robot.read_joint_position_velocity_acceleration()
     p_med, dp_med, ddp_med = real_robot.read_cartesian_position_velocity_acceleration()
 
     R_med = real_robot.read_ee_orientation()
     w_med, dw_med = real_robot.read_ee_angular_velocity_acceleration()
-    #rpy_med = rot2rpy_unwrapping(R_med, copy(rpy_med))
+    rpy_med = rot2rpy_unwrapping(R_med, rpy_med)
 
-    
     # ==============================
     #   Fourth stage: Optimization            
     # ==============================    
     # create kalman filter object to estimate jerk error
     if not kalman_jerror:
         kalman_jerror = True
-        kf_jerror = MultipleKalmanDerivator(dt, dx_e, ddx_e, np.zeros(6), n_obs=2, sigmaR=1e-4,sigmaQ=1)
+        kf_jerror = MultipleKalmanDerivator(dt, dx_e, ddx_e, np.zeros(6), n_obs=2, sigmaR=1e-4,sigmaQ=1e-4)
     # estimate jerk error
     _, _, dddx_e = kf_jerror.update(dx_e, ddx_e)
-    
-    # Derivative of Kp and Kd
-    dKP = -(alpha/dt) * (dJ_KP)
-    dKD = -(alpha/dt) * (dJ_KD)
 
     # special parameters
-    P1 = np.multiply(KP,x_e) + np.multiply(KD, dx_e)
-    P2 = -np.multiply(dKP, x_e)   - np.multiply(KP, dx_e) \
-         -np.multiply(dKD, dx_e) - np.multiply(KD, ddx_e)
+    P1 = mul(K, x_e) + mul(2*np.sqrt(K), dx_e)
+    P2 = -mul(dK, x_e) - mul(K, dx_e) - mul(dx_e, dK)/np.sqrt(K) - mul(2*np.sqrt(K), dddx_e)
 
     #cost function
-    c = gamma*0.5*np.dot(P1.T,P1) + beta*0.5*np.dot(P2.T,P2) 	# [1x1]
+    c = 0.5*np.dot(P1.T,P1) + 0.5*np.dot(P2.T,P2) 	# [1x1]
 
-    # Gradient descent
-    dP1_q = -copy(KP)					# [6x1]
-    dP2_q = copy(dKP) 					# [6x1]	
-
-    # partial derivative of J (cost) with respecto to q(output)
-    dJ_q  = gamma*np.multiply(P1, dP1_q) + beta*np.multiply(P2, dP2_q)	# [6x1]
-
-    # partial derivative of q (output) with respect to u (control)
-    dpw_med = np.concatenate((dp_med, w_med), axis=0)
-    dF = (F-Fp)#*nonzero
-    dq_du = np.sign(np.multiply(dpw_med, dF))
+    # partial derivative of J (cost) with respect to q (output)
+    dJ_q = np.clip(-mul(P1, K), -50, 50) + np.clip(mul(P2, dK), -10, 10)  	# [6x1]
 
     # partial derivative of u (control) with respect to k (control gain)
-    du_KP = np.dot(M_p, x_e)				# [6x1]
-    du_KD = np.dot(M_p, dx_e)   			# [6x1]
-
+    du_K = np.dot(M_p, x_e + dx_e/np.sqrt(K)) # [6x1]
+    
     # gradient with respecto to each control gain
-    dJ_KP = np.multiply(dJ_q, du_KP) 	# [6x1]
-    dJ_KD = np.multiply(dJ_q, du_KD) 	# [6x1]	    
+    dJ_K = mul(dJ_q, du_K) 	# [6x1]
 
-    # convergence conditions
-    convergence_position = 0.001*max_pos_error*np.ones(3)           # [m]
-    convergence_orientation = np.deg2rad(max_ori_error)*np.ones(3)  # [rad]
-    convergence_pose = np.concatenate((convergence_position, convergence_orientation), axis=0) # [m, rad]
-    crit_p = 1*(abs(x_e)>=convergence_pose)
+    # update: control gains
+    K = K - alpha*dJ_K # [6x1]
 
-    convergence_jerk = 0.001 * max_jerk * np.ones(6)
-    crit_j = 1*(abs(dddx_e)>=convergence_jerk)    
-
-    # new learning rate
-    alpha_de[0] = alpha*update_learning_rate(abs(1000*dx_e[0]), x_min=3, x_max=20, y_min=0)
-    alpha_de[1] = alpha*update_learning_rate(abs(1000*dx_e[1]), x_min=3, x_max=20, y_min=0)
-    alpha_de[2] = alpha*update_learning_rate(abs(1000*dx_e[2]), x_min=3, x_max=20, y_min=0)
-    alpha_de[3] = alpha*update_learning_rate(abs(np.rad2deg(dx_e[3])), x_min=3, x_max=20, y_min=0)
-    alpha_de[4] = alpha*update_learning_rate(abs(np.rad2deg(dx_e[4])), x_min=3, x_max=20, y_min=0)
-    alpha_de[5] = alpha*update_learning_rate(abs(np.rad2deg(dx_e[5])), x_min=3, x_max=20, y_min=0)    
-
-
-    # Upgrade control gains
-    KP = KP - alpha_de*crit_p*crit_j*dJ_KP 	#[6x1]  
-    KD = KD - alpha_de*crit_p*crit_j*dJ_KD 	#[6x1]	
+    # update: time-derivative of control gain
+    dK = -alpha*dJ_K/dt
 
     # ======================
     # Publish on topics     
@@ -380,30 +359,48 @@ while not rospy.is_shutdown():
     simdata.dddx_e = np.concatenate((1000*dddx_e[0:3], np.rad2deg(dddx_e[3:6])), axis=0)
     simdata.q = q_med
     simdata.u = u
-    simdata.alpha = alpha_de
+    simdata.alpha = alpha
+    simdata.K = K
+    simdata.dJ_q = dJ_q
+    simdata.cost = c
     pub_simdata.publish(simdata)
 
     # Ball marker
-    bmarker_ref.xyz(p_ref[0:3])	# Green
-    bmarker_act.xyz(p_med[0:3])	# Yellow          
+    bmarker_ref.xyz(p_ref)	# Green
+    bmarker_act.xyz(p_med)	# Yellow          
     bmarker_ref.publish()
     bmarker_act.publish()    
     # Frame marker
-    fmarker_ref.xyz(p_ref[0:3]) 
-    fmarker_act.xyz(p_med[0:3])
+    fmarker_ref.xyz(p_ref) 
+    fmarker_act.xyz(p_med)
     fmarker_ref.rotation(R_ref) 
     fmarker_act.rotation(R_med)
     fmarker_ref.publish()
-    fmarker_act.publish()    
+    fmarker_act.publish()   
     """
-    row_tmp = tl(x_des)+tl(dx_des)+tl(dp_ref)+tl(drpy_ref)+tl(dp_med)+tl(drpy_med)
+    row_tmp =   tl(np.array([t]))+\
+                tl(x_des[0:3])+tl(x_des[3:6])+\
+                tl(dx_des[0:3])+tl(dx_des[3:6])+tl(w_des)+\
+                tl(tmp_p_ref)+tl(tmp_rpy_ref)+\
+                tl(tmp_dp_ref)+tl(tmp_drpy_ref)+tl(tmp_w_ref)+\
+                tl(p_ref)+tl(rpy_ref) +\
+                tl(dp_ref)+tl(drpy_ref)+tl(w_ref)
+    """
+    row_tmp =   tl(np.array([t]))+\
+                tl(x_des[0:3])+tl(x_des[3:6])+\
+                tl(dx_des[0:3])+tl(dx_des[3:6])+tl(w_des)+\
+                tl(p_ref)+tl(rpy_ref) +\
+                tl(dp_ref)+tl(drpy_ref)+tl(w_ref)+\
+                tl(p_med)+tl(rpy_med) +\
+                tl(dp_med)+tl(drpy_ref)+tl(w_med)
+
+    #tl(p_med)+tl(w_med)+tl(dp_med)+tl(dw_med)
     row_tmp = tl(np.expand_dims(np.array(row_tmp), axis = 1))
-    df_row_tmp = pd.DataFrame.from_dict(dict(zip(column_tmp, row_tmp)))
-    df_tmp.append(df_row_tmp, sort = False).to_csv(path_tmp, index=False, mode = 'a', header=False)
-    """
+    df_row_tmp = pd.DataFrame.from_dict(dict(zip(df_column, row_tmp)))
+    df.append(df_row_tmp, sort = False).to_csv(path_df, index=False, mode = 'a', header=False)
+    
     # Update
     t = t + dt
-
 
     if t>=(sim_time): # 60 sec
         print("Reached maximum of steps")
