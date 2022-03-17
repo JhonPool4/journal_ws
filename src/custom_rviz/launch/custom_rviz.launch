@@ -11,7 +11,7 @@
     <node name="move_ur5" pkg="custom_rviz" type="move_ur5" output="screen"/>    
 
     <!-- Open Rviz with config -->
-    <node name="custom_rviz" pkg="custom_rviz" type="custom_rviz" output="screen" />
+    <node name="new_rviz" pkg="custom_rviz" type="new_rviz" output="screen" />
 
     <!--Open Rviz with config 
     <arg name="config_file" value="$(find ur5_description)/config/journal_config_ur5.rviz"/>
