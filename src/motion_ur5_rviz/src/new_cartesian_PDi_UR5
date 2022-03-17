@@ -123,7 +123,7 @@ else:
 if dataset_used:
     x0, dx0,_,_ = dr.dataset_trajectory_generator()
 else:
-    x0, dx0 = circular_trayectory_generator(0,freq_xyz=1/np.pi, freq_rpy=1/np.power(np.pi, 2), rpy_amp=np.array([np.pi/8, np.pi/8, 0.0]) )
+    x0, dx0 = circular_trayectory_generator(0,freq_xyz=1/(2*np.pi), freq_rpy=1/(2*np.pi), rpy_amp=np.array([1, 0, 1]) )
     
 # real model
 tmp_urdf_path = rospy.get_param('/real_ur5_urdf')
@@ -227,13 +227,14 @@ path_df = os.path.join(data_dir, fn) # path to save data
 df.to_csv(path_df, index=False) # save data
 
 while not rospy.is_shutdown():
+    
     # desired values: pose and dpose
     if not dataset_used:
         # position
-        # 2*pi*0.05*f = 0.1 ==> f= 1/pi 
+        # 2*pi*0.05*f = 0.05 ==> f= 1/2*pi 
         # orientation
-        # 2*pi*pi/4*f = 1.5 ==> 
-        x_des, dx_des = circular_trayectory_generator(t,freq_xyz=1/np.pi, freq_rpy=1/np.pi, rpy_amp=np.array([np.pi/8, np.pi/8, 0.0]) )
+        # 1*2*pi*f = 1 ==> f= 1/2*pi 
+        x_des, dx_des = circular_trayectory_generator(t,freq_xyz=1/(2*np.pi), freq_rpy=1/(2*np.pi), rpy_amp=np.array([1, 0, 1]) )
     else:
         x_des, dx_des, _, _ = dr.dataset_trajectory_generator()
 
@@ -326,10 +327,10 @@ while not rospy.is_shutdown():
     P2 = -mul(dK, x_e) - mul(K, dx_e) - mul(dx_e, dK)/np.sqrt(K) - mul(2*np.sqrt(K), dddx_e)
 
     #cost function
-    c = 0.5*np.dot(P1.T,P1) + 0.5*np.dot(P2.T,P2) 	# [1x1]
+    c = 0.5*np.dot(P1.T,P1) #+ 0.5*np.dot(P2.T,P2) 	# [1x1]
 
     # partial derivative of J (cost) with respect to q (output)
-    dJ_q = np.clip(-mul(P1, K), -50, 50) + np.clip(mul(P2, dK), -10, 10)  	# [6x1]
+    dJ_q = np.clip(-mul(P1, K), -50, 50) #+ np.clip(mul(P2, dK), -10, 10)  	# [6x1]
 
     # partial derivative of u (control) with respect to k (control gain)
     du_K = np.dot(M_p, x_e + dx_e/np.sqrt(K)) # [6x1]
